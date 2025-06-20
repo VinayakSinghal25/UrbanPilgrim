@@ -1,0 +1,199 @@
+.up-header {
+    width: 100vw;
+    margin-left: -50vw;
+    margin-right: -50vw;
+    left: 50%;
+    right: 50%;
+    position: relative;
+    z-index: 100;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #fff;
+    border-bottom: 1px solid #eee;
+  }
+  .up-header-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 32px;
+    height: 80px;
+  }
+  .up-header-left,
+  .up-header-center,
+  .up-header-right {
+    display: flex;
+    align-items: center;
+    flex: 1;
+  }
+  .up-header-center {
+    justify-content: center;
+  }
+  .up-header-right {
+    justify-content: flex-end;
+    gap: 20px;
+  }
+  .up-logo {
+    height: 60px;
+    display: block;
+  }
+  .up-logo-mobile {
+    display: none;
+  }
+  .up-logo-desktop {
+    display: block;
+  }
+  .up-menu {
+    display: flex;
+    gap: 28px;
+  }
+  .up-menu-item {
+    color: #2d4156;
+    text-decoration: none;
+    font-size: 1.08rem;
+    font-weight: 400;
+    position: relative;
+    padding: 2px 0;
+    transition: color 0.2s;
+  }
+  .up-menu-item:hover {
+    color: #b46a2c;
+  }
+  .up-menu-active {
+    font-weight: bold;
+    text-decoration: underline;
+    color: #2d4156;
+  }
+  .up-icon-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    position: relative;
+    padding: 6px;
+    display: flex;
+    align-items: center;
+    color: #222;
+  }
+  .up-cart-btn {
+    position: relative;
+  }
+  .up-cart-badge {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    background: #111;
+    color: #fff;
+    border-radius: 50%;
+    font-size: 0.85rem;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 500;
+    border: 2px solid #fff;
+  }
+  .up-hamburger {
+    display: none;
+    flex-direction: column;
+    gap: 5px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px 6px;
+  }
+  .up-hamburger span {
+    display: block;
+    width: 28px;
+    height: 3px;
+    background: #222;
+    border-radius: 2px;
+  }
+  .up-user-desktop {
+    display: block;
+  }
+  
+  /* Responsive styles */
+  @media (max-width: 900px) {
+    .up-header-inner {
+      padding: 0 10px;
+      height: 64px;
+    }
+    .up-logo {
+      height: 44px;
+    }
+    .up-menu {
+      gap: 16px;
+    }
+  }
+  @media (max-width: 700px) {
+    .up-header-inner {
+      padding: 0 4vw;
+      height: 56px;
+    }
+    .up-logo-desktop {
+      display: none;
+    }
+    .up-logo-mobile {
+      display: block;
+      margin: 0 auto;
+    }
+    .up-menu {
+      display: none;
+    }
+    .up-hamburger {
+      display: flex;
+    }
+    .up-user-desktop {
+      display: none;
+    }
+    .up-header-left,
+    .up-header-right {
+      flex: 1;
+    }
+    .up-header-center {
+      flex: 2;
+      justify-content: center;
+    }
+    .up-cart-badge {
+      width: 20px;
+      height: 20px;
+      font-size: 0.8rem;
+    }
+    /* Mobile menu overlay */
+    .up-mobile-menu {
+      position: fixed;
+      top: 0;
+      left: -100vw;
+      width: 70vw;
+      max-width: 320px;
+      height: 100vh;
+      background: #fff;
+      box-shadow: 2px 0 16px rgba(0,0,0,0.08);
+      z-index: 200;
+      display: flex;
+      flex-direction: column;
+      padding: 32px 20px;
+      transition: left 0.25s;
+    }
+    .up-mobile-menu.open {
+      left: 0;
+    }
+    .up-mobile-menu nav {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+    .up-mobile-backdrop {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.18);
+      z-index: 150;
+    }
+  }
+  
+  /* HIDE mobile menu and backdrop on desktop */
+  @media (min-width: 701px) {
+    .up-mobile-menu,
+    .up-mobile-backdrop {
+      display: none !important;
+    }
+  }

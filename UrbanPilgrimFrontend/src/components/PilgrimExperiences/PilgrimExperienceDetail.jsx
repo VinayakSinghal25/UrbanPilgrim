@@ -1,0 +1,1021 @@
+// src/components/PilgrimExperiences/PilgrimExperienceDetail.jsx
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { 
+  ArrowLeftIcon, 
+  ChevronLeftIcon, 
+  ChevronRightIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
+  MapPinIcon,
+  LinkIcon,
+  CalendarIcon,
+  UsersIcon,
+  MinusIcon,
+  PlusIcon,
+  XMarkIcon,
+  InformationCircleIcon
+} from '@heroicons/react/24/outline';
+import { pilgrimExperienceApi } from '../../services/pilgrimExperienceApi';
+
+const PilgrimExperienceDetail = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  
+  const [experience, setExperience] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [selectedDate, setSelectedDate] = useState('');
+  const [selectedOccupancy, setSelectedOccupancy] = useState('Single');
+  const [quantity, setQuantity] = useState(1);
+  const [expandedDays, setExpandedDays] = useState({});
+  const [expandedSections, setExpandedSections] = useState({
+    aboutGuide: false,
+    whatsIncluded: false,
+    whatsNotIncluded: false
+  });
+  const [showTermsModal, setShowTermsModal] = useState(false);
+
+  useEffect(() => {
+    fetchExperience();
+  }, [id]);
+
+  useEffect(() => {
+    if (experience?.availableDates?.length > 0) {
+      const nextAvailableDate = experience.availableDates.find(
+        date => new Date(date.from) >= new Date()
+      );
+      if (nextAvailableDate) {
+        const fromDate = new Date(nextAvailableDate.from).toISOString().split('T')[0];
+        const toDate = new Date(nextAvailableDate.to).toISOString().split('T')[0];
+        setSelectedDate(`${fromDate} to ${toDate}`);
+      }
+    }
+  }, [experience]);
+
+  // Function to get current price based on selected occupancy
+  const getCurrentPrice = () => {
+    if (!experience) return null;
+    
+    if (selectedOccupancy === 'Couple' && experience.priceCouple) {
+      return experience.priceCouple;
+    } else if (selectedOccupancy === 'Single' && experience.priceSingle) {
+      return experience.priceSingle;
+    }
+    
+    // Fallback to old price field if new fields don't exist
+    return experience.price || null;
+  };
+
+  const formatPrice = (price) => {
+    if (!price) return 'Price on request';
+    return `Rs. ${price.toLocaleString()}.00`;
+  };
+
+  const fetchExperience = async () => {
+    try {
+      setLoading(true);
+      const data = await pilgrimExperienceApi.getById(id);
+      setExperience(data.pilgrimExperience);
+    } catch (err) {
+      setError(err.message || 'Failed to fetch experience details');
+      console.error('Error fetching experience:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const nextImage = () => {
+    if (experience?.images?.length > 0) {
+      setCurrentImageIndex((prev) => 
+        prev === experience.images.length - 1 ? 0 : prev + 1
+      );
+    }
+  };
+
+  const prevImage = () => {
+    if (experience?.images?.length > 0) {
+      setCurrentImageIndex((prev) => 
+        prev === 0 ? experience.images.length - 1 : prev - 1
+      );
+    }
+  };
+
+  const toggleDayExpansion = (dayIndex) => {
+    setExpandedDays(prev => ({
+      ...prev,
+      [dayIndex]: !prev[dayIndex]
+    }));
+  };
+
+  const toggleSectionExpansion = (section) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+  };
+
+  const formatDateRange = (from, to) => {
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+    
+    if (fromDate.getMonth() === toDate.getMonth() && fromDate.getFullYear() === toDate.getFullYear()) {
+      return `${fromDate.getDate()}-${toDate.getDate()} ${fromDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`;
+    }
+    
+    return `${formatDate(from)} - ${formatDate(to)}`;
+  };
+
+  const handleBookNow = () => {
+    // TODO: Implement booking functionality
+    console.log('Booking:', {
+      experienceId: id,
+      selectedDate,
+      selectedOccupancy,
+      quantity,
+      price: getCurrentPrice()
+    });
+    alert('Booking functionality will be implemented soon!');
+  };
+
+  const handleMeetGuideClick = () => {
+    if (experience?.trainerProfileLink) {
+      window.open(experience.trainerProfileLink, '_blank');
+    }
+  };
+
+  const handleMapClick = () => {
+    if (experience?.mapLink) {
+      window.open(experience.mapLink, '_blank');
+    }
+  };
+
+  const handleQuantityChange = (change) => {
+    setQuantity(prev => Math.max(1, prev + change));
+  };
+
+  // Terms and Conditions Modal
+  const TermsModal = () => (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] flex flex-col">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900">Terms and Conditions</h3>
+          <button
+            onClick={() => setShowTermsModal(false)}
+            className="text-gray-400 hover:text-gray-600"
+          >
+            <XMarkIcon className="h-6 w-6" />
+          </button>
+        </div>
+        <div className="p-6 overflow-y-auto flex-1">
+          {experience?.termsAndConditions?.map((term, index) => (
+            <p key={index} className="text-gray-600 mb-4 leading-relaxed">
+              {term}
+            </p>
+          ))}
+        </div>
+        <div className="p-6 border-t border-gray-200">
+          <button
+            onClick={() => setShowTermsModal(false)}
+            className="w-full bg-gray-900 text-white py-2 px-4 rounded-lg hover:bg-gray-800 transition-colors"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading experience details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="container mx-auto px-4 py-8">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+            <h3 className="text-lg font-medium text-red-800 mb-2">Error Loading Experience</h3>
+            <p className="text-red-600 mb-4">{error}</p>
+            <div className="space-x-4">
+              <button 
+                onClick={fetchExperience}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+              >
+                Try Again
+              </button>
+              <button 
+                onClick={() => navigate('/pilgrim-experiences')}
+                className="px-4 py-2 border border-red-600 text-red-600 rounded-lg hover:bg-red-50"
+              >
+                Back to Experiences
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!experience) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Experience Not Found</h3>
+          <p className="text-gray-600 mb-4">The requested experience could not be found.</p>
+          <button 
+            onClick={() => navigate('/pilgrim-experiences')}
+            className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700"
+          >
+            Back to Experiences
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Mobile Only Header */}
+      <div className="lg:hidden bg-white border-b border-gray-200 sticky top-0 z-10">
+        <div className="px-4 py-4">
+          <div className="flex items-center justify-between mb-3">
+            <button
+              onClick={() => navigate('/pilgrim-experiences')}
+              className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg"
+            >
+              <ArrowLeftIcon className="h-5 w-5" />
+            </button>
+            <div className="text-right">
+              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
+                {formatPrice(getCurrentPrice())}
+              </p>
+              <p className="text-xs text-gray-400">
+                {selectedOccupancy} Occupancy
+              </p>
+            </div>
+          </div>
+          <div className="text-center">
+            <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">URBAN PILGRIM</p>
+            <h1 className="text-lg font-bold text-gray-900 leading-tight">
+              {experience.name}
+            </h1>
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop Layout */}
+      <div className="hidden lg:flex min-h-screen">
+        {/* Left Side - Fixed Image */}
+        <div className="w-1/2 sticky top-0 h-screen relative">
+          {experience.images && experience.images.length > 0 ? (
+            <img
+              src={experience.images[currentImageIndex]?.url}
+              alt={experience.name}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="flex items-center justify-center h-full bg-gradient-to-br from-amber-50 to-orange-50">
+              <div className="text-center">
+                <MapPinIcon className="h-12 w-12 text-amber-400 mx-auto mb-2" />
+                <p className="text-amber-600 font-medium">Spiritual Journey</p>
+              </div>
+            </div>
+          )}
+          
+          {/* Image Navigation */}
+          {experience.images && experience.images.length > 1 && (
+            <>
+              <button
+                onClick={prevImage}
+                className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white backdrop-blur-sm p-2 rounded-full shadow-lg"
+              >
+                <ChevronLeftIcon className="h-5 w-5" />
+              </button>
+              <button
+                onClick={nextImage}
+                className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white backdrop-blur-sm p-2 rounded-full shadow-lg"
+              >
+                <ChevronRightIcon className="h-5 w-5" />
+              </button>
+              
+              {/* Image Counter */}
+              <div className="absolute bottom-4 right-4 bg-black/50 text-white px-2 py-1 rounded text-xs">
+                {currentImageIndex + 1}/{experience.images.length}
+              </div>
+            </>
+          )}
+
+          {/* Back Button */}
+          <button
+            onClick={() => navigate('/pilgrim-experiences')}
+            className="absolute top-4 left-4 bg-white/80 hover:bg-white backdrop-blur-sm p-2 rounded-full shadow-lg"
+          >
+            <ArrowLeftIcon className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Right Side - All Content */}
+        <div className="w-1/2 bg-white">
+          <div className="p-8 space-y-8">
+            {/* Header */}
+            <div>
+              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">URBAN PILGRIM</p>
+              <h1 className="text-2xl font-bold text-gray-900 mb-4">{experience.name}</h1>
+              <div className="flex items-baseline space-x-2">
+                <p className="text-3xl font-bold text-gray-900">
+                  {formatPrice(getCurrentPrice())}
+                </p>
+                <span className="text-sm text-gray-500">
+                  ({selectedOccupancy} Occupancy)
+                </span>
+              </div>
+            </div>
+
+            {/* Package Options */}
+            {experience.availableDates && experience.availableDates.length > 0 && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">Package Options</label>
+                <div className="space-y-2">
+                  {experience.availableDates.map((dateRange, index) => {
+                    const dateValue = `${dateRange.from} to ${dateRange.to}`;
+                    const isSelected = selectedDate === dateValue;
+                    return (
+                      <label 
+                        key={index} 
+                        className={`flex items-center p-3 rounded-lg border cursor-pointer transition-colors ${
+                          isSelected ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="dateRange"
+                          value={dateValue}
+                          checked={isSelected}
+                          onChange={(e) => setSelectedDate(e.target.value)}
+                          className="sr-only"
+                        />
+                        <span className="text-sm font-medium">
+                          {formatDateRange(dateRange.from, dateRange.to)}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Occupancy */}
+            {experience.occupancyOptions && experience.occupancyOptions.length > 0 && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">Occupancy</label>
+                <div className="flex space-x-2">
+                  {experience.occupancyOptions.map((option) => {
+                    const isSelected = selectedOccupancy === option;
+                    return (
+                      <button
+                        key={option}
+                        onClick={() => setSelectedOccupancy(option)}
+                        className={`flex-1 px-4 py-3 rounded-lg border font-medium transition-colors ${
+                          isSelected ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        {option}
+                        {/* Show price for each option */}
+                        <div className="text-xs mt-1">
+                          {option === 'Single' && experience.priceSingle && (
+                            <span>₹{experience.priceSingle.toLocaleString()}</span>
+                          )}
+                          {option === 'Couple' && experience.priceCouple && (
+                            <span>₹{experience.priceCouple.toLocaleString()}</span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Location Information - Moved here after Occupancy */}
+            {(experience.location || experience.address || experience.mapLink) && (
+              <div className="space-y-3">
+                {experience.location && (
+                  <div className="flex items-start">
+                    <MapPinIcon className="h-5 w-5 text-gray-400 mr-2 mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-gray-600">{experience.location}</span>
+                  </div>
+                )}
+                
+                {experience.address && (
+                  <p className="text-sm text-gray-600 leading-relaxed pl-7">
+                    {experience.address}
+                  </p>
+                )}
+                
+                {experience.mapLink && (
+                  <button
+                    onClick={handleMapClick}
+                    className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 pl-7"
+                  >
+                    <LinkIcon className="h-4 w-4 mr-1" />
+                    View on Map
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Quantity */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                No of persons/sessions (1 in cart)
+              </label>
+              <div className="flex items-center border border-gray-300 rounded-lg max-w-xs">
+                <button
+                  onClick={() => handleQuantityChange(-1)}
+                  className="p-3 hover:bg-gray-50 border-r border-gray-300"
+                  disabled={quantity <= 1}
+                >
+                  <MinusIcon className="h-4 w-4" />
+                </button>
+                <span className="flex-1 text-center py-3 font-medium">{quantity}</span>
+                <button
+                  onClick={() => handleQuantityChange(1)}
+                  className="p-3 hover:bg-gray-50 border-l border-gray-300"
+                >
+                  <PlusIcon className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Book Now Button */}
+            <button
+              onClick={handleBookNow}
+              disabled={!selectedDate}
+              className="w-full bg-gray-900 text-white py-3 rounded-lg font-medium hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              Book Now
+            </button>
+
+            {/* About Sections */}
+            {experience.about && experience.about.map((section, index) => (
+              <div key={index} className="space-y-4">
+                <h2 className="text-xl font-bold text-gray-900">{section.heading}</h2>
+                <div className="space-y-4">
+                  {section.paragraphs.map((paragraph, pIndex) => (
+                    <p key={pIndex} className="text-gray-600 leading-relaxed">
+                      {paragraph}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            ))}
+
+            {/* What to Expect */}
+            {experience.whatToExpect && (
+              <div className="space-y-4">
+                <h2 className="text-xl font-bold text-gray-900">What to Expect</h2>
+                <p className="text-gray-600 leading-relaxed">{experience.whatToExpect}</p>
+              </div>
+            )}
+
+            {/* About Your Retreat Guide */}
+            {experience.retreatGuideBio && (
+              <div className="border border-gray-200 rounded-lg">
+                <button 
+                  className="flex items-center justify-between w-full p-4 text-left hover:bg-gray-50"
+                  onClick={() => toggleSectionExpansion('aboutGuide')}
+                >
+                  <h2 className="text-lg font-semibold text-gray-900">About your retreat guide</h2>
+                  {expandedSections.aboutGuide ? (
+                    <ChevronUpIcon className="h-5 w-5 text-gray-400" />
+                  ) : (
+                    <ChevronDownIcon className="h-5 w-5 text-gray-400" />
+                  )}
+                </button>
+                
+                {expandedSections.aboutGuide && (
+                  <div className="border-t border-gray-200 p-4 space-y-4">
+                    <p className="text-gray-600 leading-relaxed">{experience.retreatGuideBio}</p>
+                    {experience.trainerProfileLink && (
+                      <button
+                        onClick={handleMeetGuideClick}
+                        className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 underline"
+                      >
+                        Meet your guide
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* What's Included */}
+            {experience.whatsIncluded && experience.whatsIncluded.length > 0 && (
+              <div className="border border-gray-200 rounded-lg">
+                <button 
+                  className="flex items-center justify-between w-full p-4 text-left hover:bg-gray-50"
+                  onClick={() => toggleSectionExpansion('whatsIncluded')}
+                >
+                  <h2 className="text-lg font-semibold text-gray-900">What's included in the package</h2>
+                  {expandedSections.whatsIncluded ? (
+                    <ChevronUpIcon className="h-5 w-5 text-gray-400" />
+                  ) : (
+                    <ChevronDownIcon className="h-5 w-5 text-gray-400" />
+                  )}
+                </button>
+                
+                {expandedSections.whatsIncluded && (
+                  <div className="border-t border-gray-200 p-4">
+                    <ul className="space-y-2">
+                      {experience.whatsIncluded.map((item, index) => (
+                        <li key={index} className="flex items-start">
+                          <span className="text-green-500 mr-2 mt-1">✓</span>
+                          <span className="text-gray-600">{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* What's Not Included */}
+            {experience.whatsNotIncluded && experience.whatsNotIncluded.length > 0 && (
+              <div className="border border-gray-200 rounded-lg">
+                <button 
+                  className="flex items-center justify-between w-full p-4 text-left hover:bg-gray-50"
+                  onClick={() => toggleSectionExpansion('whatsNotIncluded')}
+                >
+                  <h2 className="text-lg font-semibold text-gray-900">What's not included in the package</h2>
+                  {expandedSections.whatsNotIncluded ? (
+                    <ChevronUpIcon className="h-5 w-5 text-gray-400" />
+                  ) : (
+                    <ChevronDownIcon className="h-5 w-5 text-gray-400" />
+                  )}
+                </button>
+                
+                {expandedSections.whatsNotIncluded && (
+                  <div className="border-t border-gray-200 p-4">
+                    <ul className="space-y-2">
+                      {experience.whatsNotIncluded.map((item, index) => (
+                        <li key={index} className="flex items-start">
+                          <span className="text-red-500 mr-2 mt-1">✗</span>
+                          <span className="text-gray-600">{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Program Schedule */}
+            {experience.programSchedule && experience.programSchedule.length > 0 && (
+              <div className="space-y-4">
+                <h2 className="text-xl font-bold text-gray-900">Program Schedule</h2>
+                <div className="space-y-3">
+                  {experience.programSchedule.map((day, dayIndex) => (
+                    <div key={dayIndex} className="border border-gray-200 rounded-lg">
+                      <button
+                        onClick={() => toggleDayExpansion(dayIndex)}
+                        className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50"
+                      >
+                        <h3 className="font-semibold text-gray-900">{day.dayTitle}</h3>
+                        {expandedDays[dayIndex] ? (
+                          <ChevronUpIcon className="h-5 w-5 text-gray-400" />
+                        ) : (
+                          <ChevronDownIcon className="h-5 w-5 text-gray-400" />
+                        )}
+                      </button>
+                      
+                      {expandedDays[dayIndex] && (
+                        <div className="border-t border-gray-200 p-4">
+                          <div className="space-y-6">
+                            {day.activities.map((activity, activityIndex) => (
+                              <div key={activityIndex} className="space-y-2">
+                                <div className="flex justify-between items-start">
+                                  <div>
+                                    <h4 className="font-medium text-gray-900">{activity.displayTitle}</h4>
+                                    <p className="text-sm text-gray-500">{activity.time}</p>
+                                  </div>
+                                </div>
+                                {activity.subheading && (
+                                  <p className="text-sm font-medium text-gray-600 italic">
+                                    {activity.subheading}
+                                  </p>
+                                )}
+                                <p className="text-gray-600 text-sm leading-relaxed">
+                                  {activity.description}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Terms and Conditions */}
+            {experience.termsAndConditions && experience.termsAndConditions.length > 0 && (
+              <div className="pt-4 border-t border-gray-200">
+                <button
+                  onClick={() => setShowTermsModal(true)}
+                  className="inline-flex items-center text-xs text-gray-500 hover:text-gray-700"
+                >
+                  <InformationCircleIcon className="h-4 w-4 mr-1" />
+                  Terms and Conditions
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile Layout */}
+      <div className="lg:hidden px-4 py-6 space-y-6">
+        {/* Image Gallery */}
+        <div className="relative">
+          <div className="aspect-[4/3] bg-gray-200 rounded-lg overflow-hidden">
+            {experience.images && experience.images.length > 0 ? (
+              <img
+                src={experience.images[currentImageIndex]?.url}
+                alt={experience.name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full bg-gradient-to-br from-amber-50 to-orange-50">
+                <div className="text-center">
+                  <MapPinIcon className="h-12 w-12 text-amber-400 mx-auto mb-2" />
+                  <p className="text-amber-600 font-medium">Spiritual Journey</p>
+                </div>
+              </div>
+            )}
+          </div>
+          
+          {/* Image Navigation */}
+          {experience.images && experience.images.length > 1 && (
+            <>
+              <button
+                onClick={prevImage}
+                className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white backdrop-blur-sm p-2 rounded-full shadow-lg"
+              >
+                <ChevronLeftIcon className="h-5 w-5" />
+              </button>
+              <button
+                onClick={nextImage}
+                className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white backdrop-blur-sm p-2 rounded-full shadow-lg"
+              >
+                <ChevronRightIcon className="h-5 w-5" />
+              </button>
+              
+              {/* Image Counter */}
+              <div className="absolute bottom-4 right-4 bg-black/50 text-white px-2 py-1 rounded text-xs">
+                {currentImageIndex + 1}/{experience.images.length}
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* All Mobile Content - Same as Desktop Right Side */}
+        <div className="space-y-6">
+          {/* Price Display */}
+          <div className="text-center">
+            <div className="flex items-baseline justify-center space-x-2">
+              <p className="text-2xl font-bold text-gray-900">
+                {formatPrice(getCurrentPrice())}
+              </p>
+              <span className="text-sm text-gray-500">
+                ({selectedOccupancy} Occupancy)
+              </span>
+            </div>
+          </div>
+
+          {/* Package Options */}
+          {experience.availableDates && experience.availableDates.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-3">Package Options</label>
+              <div className="space-y-2">
+                {experience.availableDates.map((dateRange, index) => {
+                  const dateValue = `${dateRange.from} to ${dateRange.to}`;
+                  const isSelected = selectedDate === dateValue;
+                  return (
+                    <label 
+                      key={index} 
+                      className={`flex items-center p-3 rounded-lg border cursor-pointer transition-colors ${
+                        isSelected ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="dateRange"
+                        value={dateValue}
+                        checked={isSelected}
+                        onChange={(e) => setSelectedDate(e.target.value)}
+                        className="sr-only"
+                      />
+                      <span className="text-sm font-medium">
+                        {formatDateRange(dateRange.from, dateRange.to)}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Occupancy */}
+          {experience.occupancyOptions && experience.occupancyOptions.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-3">Occupancy</label>
+              <div className="flex space-x-2">
+                {experience.occupancyOptions.map((option) => {
+                  const isSelected = selectedOccupancy === option;
+                  return (
+                    <button
+                      key={option}
+                      onClick={() => setSelectedOccupancy(option)}
+                      className={`flex-1 px-4 py-3 rounded-lg border font-medium transition-colors ${
+                        isSelected ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      {option}
+                      {/* Show price for each option */}
+                      <div className="text-xs mt-1">
+                        {option === 'Single' && experience.priceSingle && (
+                          <span>₹{experience.priceSingle.toLocaleString()}</span>
+                        )}
+                        {option === 'Couple' && experience.priceCouple && (
+                          <span>₹{experience.priceCouple.toLocaleString()}</span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Location Information - Also moved here in mobile */}
+          {(experience.location || experience.address || experience.mapLink) && (
+            <div className="space-y-3">
+              {experience.location && (
+                <div className="flex items-start">
+                  <MapPinIcon className="h-5 w-5 text-gray-400 mr-2 mt-0.5 flex-shrink-0" />
+                  <span className="text-sm text-gray-600">{experience.location}</span>
+                </div>
+              )}
+              
+              {experience.address && (
+                <p className="text-sm text-gray-600 leading-relaxed pl-7">
+                  {experience.address}
+                </p>
+              )}
+              
+              {experience.mapLink && (
+                <button
+                  onClick={handleMapClick}
+                  className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 pl-7"
+                >
+                  <LinkIcon className="h-4 w-4 mr-1" />
+                  View on Map
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Quantity */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-3">
+              No of persons/sessions (1 in cart)
+            </label>
+            <div className="flex items-center border border-gray-300 rounded-lg">
+              <button
+                onClick={() => handleQuantityChange(-1)}
+                className="p-3 hover:bg-gray-50 border-r border-gray-300"
+                disabled={quantity <= 1}
+              >
+                <MinusIcon className="h-4 w-4" />
+              </button>
+              <span className="flex-1 text-center py-3 font-medium">{quantity}</span>
+              <button
+                onClick={() => handleQuantityChange(1)}
+                className="p-3 hover:bg-gray-50 border-l border-gray-300"
+              >
+                <PlusIcon className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Book Now Button */}
+          <button
+            onClick={handleBookNow}
+            disabled={!selectedDate}
+            className="w-full bg-gray-900 text-white py-3 rounded-lg font-medium hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            Book Now
+          </button>
+
+          {/* About Sections */}
+          {experience.about && experience.about.map((section, index) => (
+            <div key={index} className="space-y-4">
+              <h2 className="text-xl font-bold text-gray-900">{section.heading}</h2>
+              <div className="space-y-4">
+                {section.paragraphs.map((paragraph, pIndex) => (
+                  <p key={pIndex} className="text-gray-600 leading-relaxed">
+                    {paragraph}
+                  </p>
+                ))}
+              </div>
+            </div>
+          ))}
+
+          {/* What to Expect */}
+          {experience.whatToExpect && (
+            <div className="space-y-4">
+              <h2 className="text-xl font-bold text-gray-900">What to Expect</h2>
+              <p className="text-gray-600 leading-relaxed">{experience.whatToExpect}</p>
+            </div>
+          )}
+
+          {/* About Your Retreat Guide */}
+          {experience.retreatGuideBio && (
+            <div className="border border-gray-200 rounded-lg">
+              <button 
+                className="flex items-center justify-between w-full p-4 text-left hover:bg-gray-50"
+                onClick={() => toggleSectionExpansion('aboutGuide')}
+              >
+                <h2 className="text-lg font-semibold text-gray-900">About your retreat guide</h2>
+                {expandedSections.aboutGuide ? (
+                  <ChevronUpIcon className="h-5 w-5 text-gray-400" />
+                ) : (
+                  <ChevronDownIcon className="h-5 w-5 text-gray-400" />
+                )}
+              </button>
+              
+              {expandedSections.aboutGuide && (
+                <div className="border-t border-gray-200 p-4 space-y-4">
+                  <p className="text-gray-600 leading-relaxed">{experience.retreatGuideBio}</p>
+                  {experience.trainerProfileLink && (
+                    <button
+                      onClick={handleMeetGuideClick}
+                      className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 underline"
+                    >
+                      Meet your guide
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* What's Included */}
+          {experience.whatsIncluded && experience.whatsIncluded.length > 0 && (
+            <div className="border border-gray-200 rounded-lg">
+              <button 
+                className="flex items-center justify-between w-full p-4 text-left hover:bg-gray-50"
+                onClick={() => toggleSectionExpansion('whatsIncluded')}
+              >
+                <h2 className="text-lg font-semibold text-gray-900">What's included in the package</h2>
+                {expandedSections.whatsIncluded ? (
+                  <ChevronUpIcon className="h-5 w-5 text-gray-400" />
+                ) : (
+                  <ChevronDownIcon className="h-5 w-5 text-gray-400" />
+                )}
+              </button>
+              
+              {expandedSections.whatsIncluded && (
+                <div className="border-t border-gray-200 p-4">
+                  <ul className="space-y-2">
+                    {experience.whatsIncluded.map((item, index) => (
+                      <li key={index} className="flex items-start">
+                        <span className="text-green-500 mr-2 mt-1">✓</span>
+                        <span className="text-gray-600">{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* What's Not Included */}
+          {experience.whatsNotIncluded && experience.whatsNotIncluded.length > 0 && (
+            <div className="border border-gray-200 rounded-lg">
+              <button 
+                className="flex items-center justify-between w-full p-4 text-left hover:bg-gray-50"
+                onClick={() => toggleSectionExpansion('whatsNotIncluded')}
+              >
+                <h2 className="text-lg font-semibold text-gray-900">What's not included in the package</h2>
+                {expandedSections.whatsNotIncluded ? (
+                  <ChevronUpIcon className="h-5 w-5 text-gray-400" />
+                ) : (
+                  <ChevronDownIcon className="h-5 w-5 text-gray-400" />
+                )}
+              </button>
+              
+              {expandedSections.whatsNotIncluded && (
+                <div className="border-t border-gray-200 p-4">
+                  <ul className="space-y-2">
+                    {experience.whatsNotIncluded.map((item, index) => (
+                      <li key={index} className="flex items-start">
+                        <span className="text-red-500 mr-2 mt-1">✗</span>
+                        <span className="text-gray-600">{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Program Schedule */}
+          {experience.programSchedule && experience.programSchedule.length > 0 && (
+            <div className="space-y-4">
+              <h2 className="text-xl font-bold text-gray-900">Program Schedule</h2>
+              <div className="space-y-3">
+                {experience.programSchedule.map((day, dayIndex) => (
+                  <div key={dayIndex} className="border border-gray-200 rounded-lg">
+                    <button
+                      onClick={() => toggleDayExpansion(dayIndex)}
+                      className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50"
+                    >
+                      <h3 className="font-semibold text-gray-900">{day.dayTitle}</h3>
+                      {expandedDays[dayIndex] ? (
+                        <ChevronUpIcon className="h-5 w-5 text-gray-400" />
+                      ) : (
+                        <ChevronDownIcon className="h-5 w-5 text-gray-400" />
+                      )}
+                    </button>
+                    
+                    {expandedDays[dayIndex] && (
+                      <div className="border-t border-gray-200 p-4">
+                        <div className="space-y-6">
+                          {day.activities.map((activity, activityIndex) => (
+                            <div key={activityIndex} className="space-y-2">
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <h4 className="font-medium text-gray-900">{activity.displayTitle}</h4>
+                                  <p className="text-sm text-gray-500">{activity.time}</p>
+                                </div>
+                              </div>
+                              {activity.subheading && (
+                                <p className="text-sm font-medium text-gray-600 italic">
+                                  {activity.subheading}
+                                </p>
+                              )}
+                              <p className="text-gray-600 text-sm leading-relaxed">
+                                {activity.description}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Terms and Conditions */}
+          {experience.termsAndConditions && experience.termsAndConditions.length > 0 && (
+            <div className="pt-4 border-t border-gray-200">
+              <button
+                onClick={() => setShowTermsModal(true)}
+                className="inline-flex items-center text-xs text-gray-500 hover:text-gray-700"
+              >
+                <InformationCircleIcon className="h-4 w-4 mr-1" />
+                Terms and Conditions
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Terms Modal */}
+      {showTermsModal && <TermsModal />}
+    </div>
+  );
+};
+
+export default PilgrimExperienceDetail;
