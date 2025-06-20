@@ -3,7 +3,7 @@ const WellnessGuide = require('../models/WellnessGuide');
 const User = require('../models/User');
 const WellnessGuideClass = require('../models/WellnessGuideClass');
 const ROLES = require('../models/RoleEnum');
-const { uploadToCloudinary, deleteFromCloudinary } = require('../config/cloudinaryConfig');
+const cloudinary = require('../config/cloudinaryConfig');
 
 // @desc    Create wellness guide profile
 // @route   POST /api/wellness-guides
@@ -35,6 +35,7 @@ const createWellnessGuide = async (req, res) => {
       firstName,
       lastName,
       contactNumber,
+      profileDescription,
       areaOfExpertise,
       languages,
       addresses // Array of all addresses user wants to save
@@ -61,7 +62,7 @@ const createWellnessGuide = async (req, res) => {
     let profilePictures = [];
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
-        const result = await uploadToCloudinary(file.path, 'wellness-guide-profiles');
+        const result = await cloudinary.uploader.upload(file.path);
         profilePictures.push({
           public_id: result.public_id,
           url: result.secure_url
@@ -94,6 +95,7 @@ const createWellnessGuide = async (req, res) => {
       user: userId,
       email: user.email, // Use verified email from user
       contactNumber,
+      profileDescription,
       areaOfExpertise,
       languages,
       profilePictures
@@ -167,6 +169,7 @@ const updateWellnessGuideProfile = async (req, res) => {
       firstName,
       lastName,
       contactNumber,
+      profileDescription,
       areaOfExpertise,
       languages,
       addresses // Array of all addresses user wants to save
@@ -198,7 +201,6 @@ const updateWellnessGuideProfile = async (req, res) => {
         }
       }
       
-      // Replace ALL addresses with the new set
       user.address = addresses.map(addr => ({
         street: addr.street,
         locality: addr.locality,
@@ -212,22 +214,19 @@ const updateWellnessGuideProfile = async (req, res) => {
     
     await user.save();
     
-    // Update wellness guide fields
-    if (contactNumber !== undefined) wellnessGuide.contactNumber = contactNumber;
-    if (areaOfExpertise !== undefined) wellnessGuide.areaOfExpertise = areaOfExpertise;
-    if (languages !== undefined) wellnessGuide.languages = languages;
-    
-    // Handle new profile pictures if uploaded
+    // Handle new profile pictures if provided
     if (req.files && req.files.length > 0) {
-      // Delete old pictures from cloudinary
+      // Delete old pictures from Cloudinary
       for (const picture of wellnessGuide.profilePictures) {
-        await deleteFromCloudinary(picture.public_id);
+        if (picture.public_id) {
+          await cloudinary.uploader.destroy(picture.public_id);
+        }
       }
       
       // Upload new pictures
-      let newProfilePictures = [];
+      const newProfilePictures = [];
       for (const file of req.files) {
-        const result = await uploadToCloudinary(file.path, 'wellness-guide-profiles');
+        const result = await cloudinary.uploader.upload(file.path);
         newProfilePictures.push({
           public_id: result.public_id,
           url: result.secure_url
@@ -236,10 +235,16 @@ const updateWellnessGuideProfile = async (req, res) => {
       wellnessGuide.profilePictures = newProfilePictures;
     }
     
+    // Update wellness guide fields
+    if (contactNumber !== undefined) wellnessGuide.contactNumber = contactNumber;
+    if (profileDescription !== undefined) wellnessGuide.profileDescription = profileDescription;
+    if (areaOfExpertise !== undefined) wellnessGuide.areaOfExpertise = areaOfExpertise;
+    if (languages !== undefined) wellnessGuide.languages = languages;
+    
     await wellnessGuide.save();
     
     await wellnessGuide.populate([
-      { path: 'user', select: 'firstName lastName email emailVerified address contactNumber roles' },
+      { path: 'user', select: 'firstName lastName email emailVerified address roles' },
       { path: 'areaOfExpertise', select: 'name description' }
     ]);
     
@@ -303,46 +308,35 @@ const getAllWellnessGuides = async (req, res) => {
   }
 };
 
-// @desc    Approve/Reject wellness guide (Admin only)
+// @desc    Update wellness guide approval status
 // @route   PUT /api/wellness-guides/:id/approval
-// @access  Private (Admin)
+// @access  Private (Admin only)
 const updateWellnessGuideApproval = async (req, res) => {
   try {
     const { id } = req.params;
     const { isApproved } = req.body;
     const adminId = req.user.userId;
     
-    const wellnessGuide = await WellnessGuide.findById(id).populate('user');
+    const wellnessGuide = await WellnessGuide.findById(id);
     if (!wellnessGuide) {
       return res.status(404).json({ message: 'Wellness guide not found' });
     }
     
-    const user = wellnessGuide.user;
-    
-    // Update wellness guide approval status
     wellnessGuide.isApproved = isApproved;
     if (isApproved) {
       wellnessGuide.approvedAt = new Date();
       wellnessGuide.approvedBy = adminId;
-      
-      // Add WELLNESS_GUIDE role to user if not already present
-      if (!user.roles.includes(ROLES.WELLNESS_GUIDE)) {
-        user.roles.push(ROLES.WELLNESS_GUIDE);
-      }
     } else {
       wellnessGuide.approvedAt = null;
       wellnessGuide.approvedBy = null;
-      
-      // Remove WELLNESS_GUIDE role from user if present
-      user.roles = user.roles.filter(role => role !== ROLES.WELLNESS_GUIDE);
     }
     
     await wellnessGuide.save();
-    await user.save();
     
     await wellnessGuide.populate([
-      { path: 'user', select: 'firstName lastName email roles' },
-      { path: 'areaOfExpertise', select: 'name description' }
+      { path: 'user', select: 'firstName lastName email address' },
+      { path: 'areaOfExpertise', select: 'name description' },
+      { path: 'approvedBy', select: 'firstName lastName email' }
     ]);
     
     res.json({
@@ -353,7 +347,7 @@ const updateWellnessGuideApproval = async (req, res) => {
   } catch (error) {
     console.error('Error updating wellness guide approval:', error);
     res.status(500).json({ 
-      message: 'Error updating wellness guide approval',
+      message: 'Error updating approval status',
       error: error.message 
     });
   }
@@ -393,7 +387,7 @@ const getPendingWellnessGuides = async (req, res) => {
   }
 };
 
-// @desc    Check if user can become wellness guide and get existing data
+// @desc    Check if user is eligible to become a wellness guide
 // @route   GET /api/wellness-guides/eligibility
 // @access  Private
 const checkWellnessGuideEligibility = async (req, res) => {
@@ -406,65 +400,49 @@ const checkWellnessGuideEligibility = async (req, res) => {
     }
     
     const eligibility = {
-      canBecome: true,
-      reasons: [],
-      existingData: {
-        firstName: user.firstName || '',
-        lastName: user.lastName || '',
-        email: user.email,
-        contactNumber: user.contactNumber || '',
-        addresses: user.address || []
-      }
+      isEligible: false,
+      reasons: []
     };
     
+    // Check if email is verified
     if (!user.emailVerified) {
-      eligibility.canBecome = false;
       eligibility.reasons.push('Email must be verified');
     }
     
+    // Check if user already has a wellness guide profile
     if (user.wellnessGuide) {
-      eligibility.canBecome = false;
       eligibility.reasons.push('User already has a wellness guide profile');
     }
     
-    // Check if user already has WELLNESS_GUIDE role
-    if (user.roles.includes(ROLES.WELLNESS_GUIDE)) {
-      eligibility.canBecome = false;
-      eligibility.reasons.push('User is already an approved wellness guide');
+    // If no blocking reasons, user is eligible
+    if (eligibility.reasons.length === 0) {
+      eligibility.isEligible = true;
     }
     
     res.json(eligibility);
     
   } catch (error) {
-    console.error('Error checking wellness guide eligibility:', error);
+    console.error('Error checking eligibility:', error);
     res.status(500).json({ 
-      message: 'Error checking wellness guide eligibility',
+      message: 'Error checking eligibility',
       error: error.message 
     });
   }
 };
 
-// @desc    Get user's current data for wellness guide form pre-population
+// @desc    Get form data needed for wellness guide creation/update
 // @route   GET /api/wellness-guides/form-data
 // @access  Private
 const getWellnessGuideFormData = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const Specialty = require('../models/Specialty');
     
-    const user = await User.findById(userId).select('firstName lastName email emailVerified contactNumber address');
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
+    const specialties = await Specialty.find({}, 'name description');
+    const languages = ['English', 'Hindi', 'Spanish', 'French', 'Other'];
     
     res.json({
-      formData: {
-        firstName: user.firstName || '',
-        lastName: user.lastName || '',
-        email: user.email,
-        emailVerified: user.emailVerified,
-        contactNumber: user.contactNumber || '',
-        addresses: user.address || []
-      }
+      specialties,
+      languages
     });
     
   } catch (error) {
