@@ -429,6 +429,37 @@ const checkWellnessGuideEligibility = async (req, res) => {
     });
   }
 };
+// @desc    Get wellness guide by ID
+// @route   GET /api/wellness-guides/:id
+// @access  Public
+const getWellnessGuideById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const wellnessGuide = await WellnessGuide.findById(id)
+      .populate('user', 'firstName lastName address')
+      .populate('areaOfExpertise', 'name description')
+      .populate('wellnessGuideClasses');
+    
+    if (!wellnessGuide) {
+      return res.status(404).json({ message: 'Wellness guide not found' });
+    }
+    
+    // Only return if approved and active (for public access)
+    if (!wellnessGuide.isApproved || !wellnessGuide.isActive) {
+      return res.status(404).json({ message: 'Wellness guide not found' });
+    }
+    
+    res.json({ wellnessGuide });
+    
+  } catch (error) {
+    console.error('Error fetching wellness guide:', error);
+    res.status(500).json({ 
+      message: 'Error fetching wellness guide',
+      error: error.message 
+    });
+  }
+};
 
 // @desc    Get form data needed for wellness guide creation/update
 // @route   GET /api/wellness-guides/form-data
@@ -463,6 +494,7 @@ module.exports = {
   getAllWellnessGuides,
   updateWellnessGuideApproval,
   getPendingWellnessGuides,
-  checkWellnessGuideEligibility
+  checkWellnessGuideEligibility,
+  getWellnessGuideById
  // getWellnessGuideFormData
 };

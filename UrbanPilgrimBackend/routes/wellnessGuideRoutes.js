@@ -10,7 +10,8 @@ const {
   getAllWellnessGuides,
   updateWellnessGuideApproval,
   getPendingWellnessGuides,
-  checkWellnessGuideEligibility
+  checkWellnessGuideEligibility,
+  getWellnessGuideById
   //getWellnessGuideFormData
 } = require('../controllers/wellnessGuideController');
 const { authMiddleware } = require('../middleware/authMiddleware');
@@ -55,6 +56,8 @@ router.get('/eligibility', authMiddleware, checkWellnessGuideEligibility);
 router.post('/', authMiddleware, upload.array('profilePictures', 5), createWellnessGuide);
 router.get('/profile', authMiddleware, getWellnessGuideProfile);
 router.put('/profile', authMiddleware, upload.array('profilePictures', 5), updateWellnessGuideProfile);
+// In wellnessGuideRoutes.js
+router.get('/:id', getWellnessGuideById);
 
 // Admin only routes
 router.get('/pending', authMiddleware, authorize(ROLES.ADMIN), getPendingWellnessGuides);
