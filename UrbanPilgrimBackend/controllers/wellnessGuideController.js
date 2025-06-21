@@ -433,26 +433,28 @@ const checkWellnessGuideEligibility = async (req, res) => {
 // @desc    Get form data needed for wellness guide creation/update
 // @route   GET /api/wellness-guides/form-data
 // @access  Private
-const getWellnessGuideFormData = async (req, res) => {
-  try {
-    const Specialty = require('../models/Specialty');
+//When user clicks on create form data, we use this endpoint to get him list of specialties and languages he can select from dropdown.
+//removing it for now, we'll get speacialty from specialty controller, and languages stored as enum in frontend. 
+// const getWellnessGuideFormData = async (req, res) => {
+//   try {
+//     const Specialty = require('../models/Specialty');
     
-    const specialties = await Specialty.find({}, 'name description');
-    const languages = ['English', 'Hindi', 'Spanish', 'French', 'Other'];
+//     const specialties = await Specialty.find({}, 'name description');
+//     const languages = ['English', 'Hindi', 'Spanish', 'French', 'Other'];
     
-    res.json({
-      specialties,
-      languages
-    });
+//     res.json({
+//       specialties,
+//       languages
+//     });
     
-  } catch (error) {
-    console.error('Error fetching form data:', error);
-    res.status(500).json({ 
-      message: 'Error fetching form data',
-      error: error.message 
-    });
-  }
-};
+//   } catch (error) {
+//     console.error('Error fetching form data:', error);
+//     res.status(500).json({ 
+//       message: 'Error fetching form data',
+//       error: error.message 
+//     });
+//   }
+// };
 
 module.exports = {
   createWellnessGuide,
@@ -461,6 +463,6 @@ module.exports = {
   getAllWellnessGuides,
   updateWellnessGuideApproval,
   getPendingWellnessGuides,
-  checkWellnessGuideEligibility,
-  getWellnessGuideFormData
+  checkWellnessGuideEligibility
+ // getWellnessGuideFormData
 };

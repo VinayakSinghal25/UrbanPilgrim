@@ -10,8 +10,8 @@ const {
   getAllWellnessGuides,
   updateWellnessGuideApproval,
   getPendingWellnessGuides,
-  checkWellnessGuideEligibility,
-  getWellnessGuideFormData
+  checkWellnessGuideEligibility
+  //getWellnessGuideFormData
 } = require('../controllers/wellnessGuideController');
 const { authMiddleware } = require('../middleware/authMiddleware');
 const { authorize } = require('../middleware/roleCheck');
@@ -51,7 +51,7 @@ router.get('/', getAllWellnessGuides);
 
 // Protected routes (require authentication)
 router.get('/eligibility', authMiddleware, checkWellnessGuideEligibility);
-router.get('/form-data', authMiddleware, getWellnessGuideFormData);
+//router.get('/form-data', authMiddleware, getWellnessGuideFormData);
 router.post('/', authMiddleware, upload.array('profilePictures', 5), createWellnessGuide);
 router.get('/profile', authMiddleware, getWellnessGuideProfile);
 router.put('/profile', authMiddleware, upload.array('profilePictures', 5), updateWellnessGuideProfile);
