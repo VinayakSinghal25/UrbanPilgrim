@@ -50,17 +50,18 @@ const upload = multer({
 // Public routes
 router.get('/', getAllWellnessGuides);
 
-// Protected routes (require authentication)
+// Protected routes (require authentication) - SPECIFIC PATHS FIRST
 router.get('/eligibility', authMiddleware, checkWellnessGuideEligibility);
-//router.get('/form-data', authMiddleware, getWellnessGuideFormData);
-router.post('/', authMiddleware, upload.array('profilePictures', 5), createWellnessGuide);
+router.get('/pending', authMiddleware, authorize(ROLES.ADMIN), getPendingWellnessGuides);
 router.get('/profile', authMiddleware, getWellnessGuideProfile);
 router.put('/profile', authMiddleware, upload.array('profilePictures', 5), updateWellnessGuideProfile);
-// In wellnessGuideRoutes.js
-router.get('/:id', getWellnessGuideById);
+//router.get('/form-data', authMiddleware, getWellnessGuideFormData);
+router.post('/', authMiddleware, upload.array('profilePictures', 5), createWellnessGuide);
 
-// Admin only routes
-router.get('/pending', authMiddleware, authorize(ROLES.ADMIN), getPendingWellnessGuides);
+// Admin only routes (SPECIFIC PATHS FIRST)
 router.put('/:id/approval', authMiddleware, authorize(ROLES.ADMIN), updateWellnessGuideApproval);
+
+// PARAMETERIZED ROUTES LAST (so they don't catch specific paths)
+router.get('/:id', getWellnessGuideById);
 
 module.exports = router;

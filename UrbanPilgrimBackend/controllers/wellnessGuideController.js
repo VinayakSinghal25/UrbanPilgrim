@@ -322,19 +322,35 @@ const updateWellnessGuideApproval = async (req, res) => {
       return res.status(404).json({ message: 'Wellness guide not found' });
     }
     
+    // Get the associated user
+    const user = await User.findById(wellnessGuide.user);
+    if (!user) {
+      return res.status(404).json({ message: 'Associated user not found' });
+    }
+    
     wellnessGuide.isApproved = isApproved;
     if (isApproved) {
       wellnessGuide.approvedAt = new Date();
       wellnessGuide.approvedBy = adminId;
+      
+      // Add WELLNESS_GUIDE role to user if not already present
+      if (!user.roles.includes(ROLES.WELLNESS_GUIDE)) {
+        user.roles.push(ROLES.WELLNESS_GUIDE);
+      }
     } else {
       wellnessGuide.approvedAt = null;
       wellnessGuide.approvedBy = null;
+      
+      // Remove WELLNESS_GUIDE role from user
+      user.roles = user.roles.filter(role => role !== ROLES.WELLNESS_GUIDE);
     }
     
+    // Save both the wellness guide and user
     await wellnessGuide.save();
+    await user.save();
     
     await wellnessGuide.populate([
-      { path: 'user', select: 'firstName lastName email address' },
+      { path: 'user', select: 'firstName lastName email address roles' },
       { path: 'areaOfExpertise', select: 'name description' },
       { path: 'approvedBy', select: 'firstName lastName email' }
     ]);
