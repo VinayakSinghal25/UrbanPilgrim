@@ -1356,6 +1356,204 @@ const removeTimeSlot = async (req, res) => {
     });
   }
 };
+// @desc    Get schedule extension information with strict date validation
+// @route   GET /api/wellness-guide-classes/:id/schedule-extension-info
+// @access  Private (Wellness Guide - own classes only)
+const getScheduleExtensionInfo = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.userId;
+    
+    // Verify ownership
+    const wellnessGuide = await WellnessGuide.findOne({ 
+      user: userId, 
+      isApproved: true, 
+      isActive: true 
+    });
+    
+    if (!wellnessGuide) {
+      return res.status(403).json({ 
+        message: 'You must be an approved wellness guide' 
+      });
+    }
+
+    const classDetails = await WellnessGuideClass.findOne({
+      _id: id,
+      wellnessGuide: wellnessGuide._id,
+      status: 'active'
+    });
+
+    if (!classDetails) {
+      return res.status(404).json({ 
+        message: 'Class not found or not accessible' 
+      });
+    }
+
+    // Get original recurring pattern info
+    const originalPattern = {
+      selectedDays: classDetails.scheduleConfig.selectedDays,
+      timeSlots: classDetails.scheduleConfig.timeSlots,
+      dateRange: classDetails.scheduleConfig.dateRange,
+      timezone: classDetails.timezone
+    };
+
+    const originalStartDate = moment.tz(originalPattern.dateRange.startDate, classDetails.timezone);
+    const originalEndDate = moment.tz(originalPattern.dateRange.endDate, classDetails.timezone);
+
+    // Find all existing time slots
+    const allSlots = await TimeSlot.find({
+      wellnessGuideClass: id,
+      isActive: true
+    }).sort({ date: 1 });
+
+    // Categorize slots: original recurring vs individually added
+    const originalRecurringSlots = [];
+    const individuallyAddedSlots = [];
+    
+    allSlots.forEach(slot => {
+      const slotDate = moment.tz(slot.date, classDetails.timezone);
+      
+      // Check if this slot is within original recurring pattern
+      if (slotDate.isSameOrAfter(originalStartDate, 'day') && 
+          slotDate.isSameOrBefore(originalEndDate, 'day') &&
+          originalPattern.selectedDays.includes(slot.dayOfWeek)) {
+        
+        // Further check if it matches original time slots
+        const timeSlots = originalPattern.timeSlots[slot.mode] || [];
+        const matchesOriginalTime = timeSlots.some(ts => 
+          ts.startTime === slot.startTime && ts.endTime === slot.endTime
+        );
+        
+        if (matchesOriginalTime) {
+          originalRecurringSlots.push(slot);
+        } else {
+          individuallyAddedSlots.push(slot);
+        }
+      } else {
+        individuallyAddedSlots.push(slot);
+      }
+    });
+
+    // Find the absolute latest slot date (regardless of type)
+    const latestSlot = allSlots[allSlots.length - 1]; // Already sorted by date ascending
+    const latestSlotDate = latestSlot ? moment.tz(latestSlot.date, classDetails.timezone) : null;
+
+    // STRICT RULE: Recurring extension can only start AFTER the latest date
+    // (whether from original recurring end or individual slots)
+    let earliestAllowedStartDate;
+    if (latestSlotDate && latestSlotDate.isAfter(originalEndDate)) {
+      earliestAllowedStartDate = latestSlotDate.clone().add(1, 'day');
+    } else {
+      earliestAllowedStartDate = originalEndDate.clone().add(1, 'day');
+    }
+
+    // Suggest start date as the earliest allowed date
+    const suggestedStartDate = earliestAllowedStartDate.clone().startOf('day');
+    
+    // Suggest default extension period (3 months)
+    const suggestedEndDate = suggestedStartDate.clone().add(3, 'months').endOf('day');
+
+    // Calculate potential slots count for suggestion
+    let potentialSlotsCount = 0;
+    for (let date = suggestedStartDate.clone(); date.isSameOrBefore(suggestedEndDate); date.add(1, 'day')) {
+      if (originalPattern.selectedDays.includes(date.format('dddd'))) {
+        if (classDetails.modes.online?.enabled) {
+          potentialSlotsCount += originalPattern.timeSlots.online?.length || 0;
+        }
+        if (classDetails.modes.offline?.enabled) {
+          potentialSlotsCount += originalPattern.timeSlots.offline?.length || 0;
+        }
+      }
+    }
+
+    // Get existing individual slots that might conflict with future recurring
+    const futureIndividualSlots = individuallyAddedSlots.filter(slot => {
+      const slotDate = moment.tz(slot.date, classDetails.timezone);
+      return slotDate.isAfter(originalEndDate);
+    });
+
+    res.json({
+      classTitle: classDetails.title,
+      originalPattern: {
+        selectedDays: originalPattern.selectedDays,
+        timeSlots: originalPattern.timeSlots,
+        dateRange: originalPattern.dateRange,
+        timezone: originalPattern.timezone
+      },
+      scheduleAnalysis: {
+        originalRecurringPeriod: {
+          startDate: originalStartDate.format('YYYY-MM-DD'),
+          endDate: originalEndDate.format('YYYY-MM-DD'),
+          slotsCount: originalRecurringSlots.length
+        },
+        individualSlotsAdded: {
+          count: individuallyAddedSlots.length,
+          slots: individuallyAddedSlots.map(slot => ({
+            date: moment.tz(slot.date, classDetails.timezone).format('YYYY-MM-DD'),
+            time: `${slot.startTime}-${slot.endTime}`,
+            mode: slot.mode
+          }))
+        },
+        latestSlotDate: latestSlotDate ? latestSlotDate.format('YYYY-MM-DD') : originalEndDate.format('YYYY-MM-DD')
+      },
+      recurringExtensionRules: {
+        earliestAllowedStartDate: earliestAllowedStartDate.format('YYYY-MM-DD'),
+        reason: latestSlotDate && latestSlotDate.isAfter(originalEndDate) 
+          ? `Must start after your latest individual slot (${latestSlotDate.format('MMM DD, YYYY')})`
+          : `Must start after your original recurring schedule (${originalEndDate.format('MMM DD, YYYY')})`,
+        conflictWarning: futureIndividualSlots.length > 0 
+          ? `Warning: You have ${futureIndividualSlots.length} individual slots after ${originalEndDate.format('MMM DD')}. New recurring slots will be checked for conflicts.`
+          : "No conflicts expected with individual slots."
+      },
+      extensionSuggestion: {
+        suggestedStartDate: suggestedStartDate.format('YYYY-MM-DD'),
+        suggestedEndDate: suggestedEndDate.format('YYYY-MM-DD'),
+        potentialSlotsCount,
+        message: `Continue your recurring pattern from ${suggestedStartDate.format('MMM DD, YYYY')} for 3 more months`
+      },
+      readyToExtend: {
+        canExtend: true,
+        note: "Recurring slots will be validated against existing individual slots during creation",
+        extensionPayloadOnline: {
+          mode: "online",
+          recurringConfig: {
+            selectedDays: originalPattern.selectedDays,
+            dateRange: {
+              startDate: suggestedStartDate.toISOString(),
+              endDate: suggestedEndDate.toISOString()
+            },
+            timeSlots: originalPattern.timeSlots.online || []
+          }
+        },
+        extensionPayloadOffline: {
+          mode: "offline",
+          recurringConfig: {
+            selectedDays: originalPattern.selectedDays,
+            dateRange: {
+              startDate: suggestedStartDate.toISOString(),
+              endDate: suggestedEndDate.toISOString()
+            },
+            timeSlots: originalPattern.timeSlots.offline || []
+          }
+        }
+      },
+      individualSlotOption: {
+        message: "To add slots before the earliest allowed recurring date, use 'Add Individual Time Slots'",
+        allowedDateRange: {
+          after: originalEndDate.format('YYYY-MM-DD'),
+          before: earliestAllowedStartDate.format('YYYY-MM-DD')
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching schedule extension info:', error);
+    res.status(500).json({ 
+      message: 'Error fetching schedule extension info',
+      error: error.message 
+    });
+  }
+};
 
 module.exports = {
   createWellnessGuideClass,
@@ -1363,7 +1561,7 @@ module.exports = {
   processSlotGeneration,
   getMyClasses,
   getClassDetails,
-  getScheduleRequestStatus,
+  getScheduleRequestStatus, // Is not working, to check.
   updatePlatformMargin,
   updateDiscountSettings,
   getAllClassesForAdmin,
@@ -1371,5 +1569,6 @@ module.exports = {
   getPendingClasses,
   updateWellnessGuideClass,
   addTimeSlots,        // New
-  removeTimeSlot       // New
+  removeTimeSlot,
+  getScheduleExtensionInfo      // New
 };

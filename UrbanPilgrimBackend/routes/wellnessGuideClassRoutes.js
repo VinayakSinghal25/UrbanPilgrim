@@ -15,7 +15,9 @@ const {
   updateClassApproval,
   getAllClassesForAdmin,
   addTimeSlots,
-  removeTimeSlot
+  removeTimeSlot,
+  addRecurringTimeSlots,     // ← If you added this function
+  getScheduleExtensionInfo   // ← Add this import
 } = require('../controllers/wellnessGuideClassController');
 const { authMiddleware } = require('../middleware/authMiddleware');
 const { authorize } = require('../middleware/roleCheck');
@@ -52,11 +54,17 @@ router.get('/:id', getClassDetails);
 router.get('/my/classes', authMiddleware, authorize(ROLES.WELLNESS_GUIDE), getMyClasses);
 router.get('/my/addresses', authMiddleware, authorize(ROLES.WELLNESS_GUIDE), getMyAddresses);
 router.get('/schedule-status/:requestId', authMiddleware, authorize(ROLES.WELLNESS_GUIDE), getScheduleRequestStatus);
+
+// NEW ROUTE - Schedule extension info
+router.get('/:id/schedule-extension-info', authMiddleware, authorize(ROLES.WELLNESS_GUIDE), getScheduleExtensionInfo);
+
+// Class management routes
 router.post('/', authMiddleware, authorize(ROLES.WELLNESS_GUIDE), upload.array('photos', 5), createWellnessGuideClass);
 router.put('/:id', authMiddleware, authorize(ROLES.WELLNESS_GUIDE), upload.array('photos', 5), updateWellnessGuideClass);
 
 // Time slot management routes - SPECIFIC PATHS FIRST
 router.post('/:id/time-slots', authMiddleware, authorize(ROLES.WELLNESS_GUIDE), addTimeSlots);
+router.post('/:id/recurring-time-slots', authMiddleware, authorize(ROLES.WELLNESS_GUIDE), addRecurringTimeSlots);  // ← If you added this
 router.delete('/:id/time-slots/:slotId', authMiddleware, authorize(ROLES.WELLNESS_GUIDE), removeTimeSlot);
 
 // Admin routes - SPECIFIC PATHS FIRST
