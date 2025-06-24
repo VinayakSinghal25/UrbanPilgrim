@@ -5,11 +5,13 @@ import AdminLayout from '../components/Admin/Layout/AdminLayout';
 import PilgrimExperienceList from '../components/Admin/PilgrimExperience/PilgrimExperienceList';
 import CreatePilgrimExperience from '../components/Admin/PilgrimExperience/CreatePilgrimExperience';
 import EditPilgrimExperience from '../components/Admin/PilgrimExperience/EditPilgrimExperience';
+import PendingWellnessGuides from '../components/Admin/WellnessGuide/PendingWellnessGuides';
 import { 
   ChartBarIcon, 
   UsersIcon, 
   MapIcon, 
-  CurrencyDollarIcon 
+  CurrencyDollarIcon,
+  UserGroupIcon
 } from '@heroicons/react/24/outline';
 
 const AdminDashboard = () => {
@@ -96,7 +98,7 @@ const AdminDashboard = () => {
       {/* Quick Actions */}
       <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
         <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <button 
             onClick={() => {
               console.log('Navigate to create experience');
@@ -123,6 +125,18 @@ const AdminDashboard = () => {
           
           <button 
             onClick={() => {
+              console.log('Navigate to pending wellness guides');
+              navigate('/admin/dashboard/pending-wellness-guides');
+            }}
+            className="p-4 text-left border border-gray-200 rounded-lg hover:border-amber-300 hover:shadow-md transition-all duration-200"
+          >
+            <UserGroupIcon className="h-8 w-8 text-amber-600 mb-2" />
+            <h3 className="font-semibold text-gray-900">Pending Guide Requests</h3>
+            <p className="text-sm text-gray-600">Review and approve wellness guide applications</p>
+          </button>
+          
+          <button 
+            onClick={() => {
               console.log('Navigate to analytics');
               navigate('/admin/dashboard/analytics');
             }}
@@ -144,6 +158,7 @@ const AdminDashboard = () => {
         <Route path="pilgrim-experiences" element={<PilgrimExperienceList />} />
         <Route path="pilgrim-experiences/create" element={<CreatePilgrimExperience />} />
         <Route path="pilgrim-experiences/edit/:id" element={<EditPilgrimExperience />} />
+        <Route path="pending-wellness-guides" element={<PendingWellnessGuides />} />
         <Route path="users" element={<div>Users Management - Coming Soon</div>} />
         <Route path="analytics" element={<div>Analytics - Coming Soon</div>} />
         <Route path="settings" element={<div>Settings - Coming Soon</div>} />

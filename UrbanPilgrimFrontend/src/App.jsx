@@ -1,86 +1,58 @@
-import { Routes, Route, Navigate } from "react-router-dom";
-import './App.css';
-import './index.css';
-
-import SignupPage from './pages/SignupPage';
+// src/App.jsx
+import React from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { Provider } from 'react-redux';
+import { store } from './store/store';
 import Header from './components/Header';
-import Banner from './components/Banner';
 import Footer from './components/Footer';
-import LoginPage from "./pages/LoginPage";
-import ProfilePage from "./pages/ProfilePage";
-import AdminDashboard from './pages/AdminDashboard';
-import ProtectedRoute from './components/ProtectedRoute';
+import Banner from './components/Banner';
 import PilgrimExperiences from './components/PilgrimExperiences/PilgrimExperiences';
 import PilgrimExperienceDetail from './components/PilgrimExperiences/PilgrimExperienceDetail';
-
-// Footer link pages
-import JoinGuidesPage from './pages/JoinGuidesPage';
-import JoinCuratorsPage from './pages/JoinCuratorsPage';
+import ExperienceDetail from './components/User/PilgrimExperienceBooking/ExperienceDetail';
 import WhoWeArePage from './pages/WhoWeArePage';
 import WhyChooseUsPage from './pages/WhyChooseUsPage';
-import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import ContactPage from './pages/ContactPage';
-
-// Wellness Guide Form, Dashboard and Email Verification
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
+import JoinCuratorsPage from './pages/JoinCuratorsPage';
+import JoinGuidesPage from './pages/JoinGuidesPage';
 import WellnessGuideFormPage from './pages/WellnessGuideFormPage';
 import WellnessGuideDashboard from './pages/WellnessGuideDashboard';
 import EmailVerificationPage from './pages/EmailVerificationPage';
-
-import { Provider } from 'react-redux';
-import { store } from './store/store';
+import LoginPage from './pages/LoginPage';
+import SignupPage from './pages/SignupPage';
+import ProfilePage from './pages/ProfilePage';
+import AdminDashboard from './pages/AdminDashboard';
+import ProtectedRoute from './components/ProtectedRoute';
+import './App.css';
 
 function App() {
   return (
     <Provider store={store}>
-      <div className="app-container">
-        <Banner />
+      <div className="App">
         <Header />
-        <main className="main-content">
+        <main>
           <Routes>
+            <Route path="/" element={
+              <>
+                <Banner />
+                <PilgrimExperiences />
+              </>
+            } />
+            
             {/* Public routes */}
-            <Route path="/" element={<div>Home Page</div>} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/pilgrim-experiences" element={<PilgrimExperiences />} />
             <Route path="/pilgrim-experiences/:id" element={<PilgrimExperienceDetail />} />
-            
-            {/* Footer link pages */}
-            <Route path="/join-guides" element={<JoinGuidesPage />} />
-            <Route path="/join-curators" element={<JoinCuratorsPage />} />
+            <Route path="/experience/:id" element={<ExperienceDetail />} />
             <Route path="/who-we-are" element={<WhoWeArePage />} />
             <Route path="/why-choose-us" element={<WhyChooseUsPage />} />
-            <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
             <Route path="/contact" element={<ContactPage />} />
-            
-            {/* Email Verification - Protected Route */}
-            <Route 
-              path="/verify-email" 
-              element={
-                <ProtectedRoute>
-                  <EmailVerificationPage />
-                </ProtectedRoute>
-              } 
-            />
-            
-            {/* Wellness Guide Form - Protected Route */}
-            <Route 
-              path="/wellness-guide-form" 
-              element={
-                <ProtectedRoute>
-                  <WellnessGuideFormPage />
-                </ProtectedRoute>
-              } 
-            />
-            
-            {/* Wellness Guide Dashboard - Protected Route */}
-            <Route 
-              path="/wellness-guide-dashboard" 
-              element={
-                <ProtectedRoute>
-                  <WellnessGuideDashboard />
-                </ProtectedRoute>
-              } 
-            />
+            <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+            <Route path="/join-curators" element={<JoinCuratorsPage />} />
+            <Route path="/join-guides" element={<JoinGuidesPage />} />
+            <Route path="/wellness-guide-form" element={<WellnessGuideFormPage />} />
+            <Route path="/verify-email" element={<EmailVerificationPage />} />
             
             {/* Protected routes */}
             <Route 
@@ -102,11 +74,21 @@ function App() {
               } 
             />
             
-            {/* Admin Dashboard Routes */}
+            {/* Wellness Guide Dashboard */}
+            <Route 
+              path="/wellness-guide-dashboard" 
+              element={
+                <ProtectedRoute>
+                  <WellnessGuideDashboard />
+                </ProtectedRoute>
+              } 
+            />
+            
+            {/* Admin Dashboard Routes - Fixed role check */}
             <Route 
               path="/admin/dashboard/*" 
               element={
-                <ProtectedRoute requiredRole="admin">
+                <ProtectedRoute requiredRole="ADMIN">
                   <AdminDashboard />
                 </ProtectedRoute>
               } 

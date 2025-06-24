@@ -16,7 +16,7 @@ const ProtectedRoute = ({ children, requiredRole }) => {
     return <Navigate to="/login" replace />;
   }
 
-  if (requiredRole && (!user.roles || !user.roles.includes(requiredRole.toUpperCase()))) {
+  if (requiredRole && (!user.roles || !user.roles.includes(requiredRole))) {
     console.log('ProtectedRoute - Role mismatch, redirecting to home');
     return <Navigate to="/" replace />;
   }
