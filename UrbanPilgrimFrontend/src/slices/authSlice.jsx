@@ -98,6 +98,23 @@ const authSlice = createSlice({
       clearAuthCookies();
       console.log('Logged out and cleared cookies'); // Debug log
     },
+    // Add setAuth as an alias for authSuccess for consistency
+    setAuth(state, action) {
+      console.log('SetAuth called with payload:', action.payload); // Debug log
+      state.loading = false;
+      state.user = action.payload.user;
+      state.token = action.payload.token;
+      state.error = null;
+      
+      try {
+        // Save to cookies
+        setUserInCookie(action.payload.user);
+        setTokenInCookie(action.payload.token);
+        console.log('Successfully saved auth data to cookies via setAuth'); // Debug log
+      } catch (error) {
+        console.error('Error saving to cookies:', error);
+      }
+    },
     // Update user profile in Redux state
     updateUserStart(state) {
       state.loading = true;
@@ -126,6 +143,7 @@ export const {
   authSuccess, 
   authFailure, 
   logout,
+  setAuth, // Added this export
   updateUserStart,
   updateUserSuccess,
   updateUserFailure

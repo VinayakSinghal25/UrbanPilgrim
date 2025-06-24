@@ -21,6 +21,11 @@ import WhyChooseUsPage from './pages/WhyChooseUsPage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import ContactPage from './pages/ContactPage';
 
+// Wellness Guide Form, Dashboard and Email Verification
+import WellnessGuideFormPage from './pages/WellnessGuideFormPage';
+import WellnessGuideDashboard from './pages/WellnessGuideDashboard';
+import EmailVerificationPage from './pages/EmailVerificationPage';
+
 import { Provider } from 'react-redux';
 import { store } from './store/store';
 
@@ -46,6 +51,36 @@ function App() {
             <Route path="/why-choose-us" element={<WhyChooseUsPage />} />
             <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
             <Route path="/contact" element={<ContactPage />} />
+            
+            {/* Email Verification - Protected Route */}
+            <Route 
+              path="/verify-email" 
+              element={
+                <ProtectedRoute>
+                  <EmailVerificationPage />
+                </ProtectedRoute>
+              } 
+            />
+            
+            {/* Wellness Guide Form - Protected Route */}
+            <Route 
+              path="/wellness-guide-form" 
+              element={
+                <ProtectedRoute>
+                  <WellnessGuideFormPage />
+                </ProtectedRoute>
+              } 
+            />
+            
+            {/* Wellness Guide Dashboard - Protected Route */}
+            <Route 
+              path="/wellness-guide-dashboard" 
+              element={
+                <ProtectedRoute>
+                  <WellnessGuideDashboard />
+                </ProtectedRoute>
+              } 
+            />
             
             {/* Protected routes */}
             <Route 

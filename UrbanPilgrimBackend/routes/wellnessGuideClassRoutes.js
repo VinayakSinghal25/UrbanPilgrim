@@ -16,8 +16,8 @@ const {
   getAllClassesForAdmin,
   addTimeSlots,
   removeTimeSlot,
-  addRecurringTimeSlots,     // ← If you added this function
-  getScheduleExtensionInfo   // ← Add this import
+  addRecurringTimeSlots,
+  getScheduleExtensionInfo
 } = require('../controllers/wellnessGuideClassController');
 const { authMiddleware } = require('../middleware/authMiddleware');
 const { authorize } = require('../middleware/roleCheck');
@@ -64,7 +64,7 @@ router.put('/:id', authMiddleware, authorize(ROLES.WELLNESS_GUIDE), upload.array
 
 // Time slot management routes - SPECIFIC PATHS FIRST
 router.post('/:id/time-slots', authMiddleware, authorize(ROLES.WELLNESS_GUIDE), addTimeSlots);
-router.post('/:id/recurring-time-slots', authMiddleware, authorize(ROLES.WELLNESS_GUIDE), addRecurringTimeSlots);  // ← If you added this
+router.post('/:id/recurring-time-slots', authMiddleware, authorize(ROLES.WELLNESS_GUIDE), addRecurringTimeSlots);
 router.delete('/:id/time-slots/:slotId', authMiddleware, authorize(ROLES.WELLNESS_GUIDE), removeTimeSlot);
 
 // Admin routes - SPECIFIC PATHS FIRST

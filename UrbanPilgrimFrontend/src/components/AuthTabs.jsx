@@ -18,6 +18,13 @@ export default function AuthTabs() {
     }, 1000);
   };
 
+  const getDisplayName = (user) => {
+    if (user?.firstName && user?.lastName) {
+      return `${user.firstName} ${user.lastName}`;
+    }
+    return user?.firstName || user?.lastName || user?.email || 'User';
+  };
+
   return (
     <div className="max-w-md mx-auto mt-8 p-4 bg-white rounded shadow">
       <div className="flex mb-4">
@@ -43,7 +50,7 @@ export default function AuthTabs() {
       
       {success && (
         <div className="text-green-600 mb-2 p-3 bg-green-50 border border-green-200 rounded-md">
-          Success! Welcome, {success.user?.name || 'User'}. Redirecting to home page...
+          Success! Welcome, {getDisplayName(success.user)}. Redirecting to home page...
         </div>
       )}
       

@@ -1554,6 +1554,260 @@ const getScheduleExtensionInfo = async (req, res) => {
     });
   }
 };
+// @desc    Add recurring time slots extending existing schedule
+// @route   POST /api/wellness-guide-classes/:id/recurring-time-slots
+// @access  Private (Wellness Guide - own classes only)
+const addRecurringTimeSlots = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.userId;
+    const { 
+      selectedDays, 
+      dateRange, 
+      timeSlots, // { online: [...], offline: [...] }
+      modes // { online: { enabled: true }, offline: { enabled: false } }
+    } = req.body;
+    
+    // Verify ownership and class status
+    const wellnessGuide = await WellnessGuide.findOne({ 
+      user: userId, 
+      isApproved: true, 
+      isActive: true 
+    });
+    
+    if (!wellnessGuide) {
+      return res.status(403).json({ 
+        message: 'You must be an approved wellness guide' 
+      });
+    }
+
+    const classDetails = await WellnessGuideClass.findOne({
+      _id: id,
+      wellnessGuide: wellnessGuide._id,
+      status: 'active'
+    });
+
+    if (!classDetails) {
+      return res.status(404).json({ 
+        message: 'Class not found or not accessible' 
+      });
+    }
+
+    // Validate input
+    if (!selectedDays || !Array.isArray(selectedDays) || selectedDays.length === 0) {
+      return res.status(400).json({ 
+        message: 'At least one day must be selected' 
+      });
+    }
+
+    if (!dateRange || !dateRange.startDate || !dateRange.endDate) {
+      return res.status(400).json({ 
+        message: 'Date range (startDate and endDate) is required' 
+      });
+    }
+
+    const startDate = moment.tz(dateRange.startDate, classDetails.timezone);
+    const endDate = moment.tz(dateRange.endDate, classDetails.timezone);
+
+    if (startDate.isSameOrAfter(endDate)) {
+      return res.status(400).json({ 
+        message: 'Start date must be before end date' 
+      });
+    }
+
+    // Validate modes and time slots
+    if (!modes.online?.enabled && !modes.offline?.enabled) {
+      return res.status(400).json({ 
+        message: 'At least one mode (online or offline) must be enabled' 
+      });
+    }
+
+    if (modes.online?.enabled && (!timeSlots.online || timeSlots.online.length === 0)) {
+      return res.status(400).json({ 
+        message: 'Online time slots are required when online mode is enabled' 
+      });
+    }
+
+    if (modes.offline?.enabled && (!timeSlots.offline || timeSlots.offline.length === 0)) {
+      return res.status(400).json({ 
+        message: 'Offline time slots are required when offline mode is enabled' 
+      });
+    }
+
+    // Get all existing time slots for this class, sorted by date
+    const allExistingSlots = await TimeSlot.find({
+      wellnessGuideClass: id,
+      isActive: true
+    }).sort({ date: 1 });
+
+    if (allExistingSlots.length === 0) {
+      return res.status(400).json({ 
+        message: 'No existing time slots found. Please create initial schedule first.' 
+      });
+    }
+
+    // Find the latest date from existing slots
+    const latestExistingSlot = allExistingSlots[allExistingSlots.length - 1];
+    const latestExistingDate = moment.tz(latestExistingSlot.date, classDetails.timezone);
+
+    // STRICT RULE: New recurring schedule must start AFTER the latest existing date
+    if (startDate.isSameOrBefore(latestExistingDate, 'day')) {
+      return res.status(400).json({ 
+        message: `New recurring schedule must start after ${latestExistingDate.format('YYYY-MM-DD')}. Earliest allowed start date is ${latestExistingDate.clone().add(1, 'day').format('YYYY-MM-DD')}` 
+      });
+    }
+
+    // Generate all potential new slots
+    const conflicts = [];
+    const slotsToCreate = [];
+
+    // Generate slots for each day in the date range
+    for (let date = startDate.clone(); date.isSameOrBefore(endDate); date.add(1, 'day')) {
+      const dayOfWeek = date.format('dddd');
+      
+      if (!selectedDays.includes(dayOfWeek)) {
+        continue;
+      }
+      
+      // Generate online slots
+      if (modes.online?.enabled) {
+        for (const timeSlot of timeSlots.online) {
+          const slotData = {
+            wellnessGuideClass: classDetails._id,
+            wellnessGuide: wellnessGuide._id,
+            mode: 'online',
+            date: date.toDate(),
+            dayOfWeek,
+            startTime: timeSlot.startTime,
+            endTime: timeSlot.endTime,
+            startTimeUTC: moment.tz(`${date.format('YYYY-MM-DD')} ${timeSlot.startTime}`, classDetails.timezone).utc().toDate(),
+            endTimeUTC: moment.tz(`${date.format('YYYY-MM-DD')} ${timeSlot.endTime}`, classDetails.timezone).utc().toDate(),
+            timezone: classDetails.timezone,
+            maxCapacity: classDetails.modes.online.maxCapacity,
+            price: classDetails.modes.online.price,
+            currentBookings: 0,
+            availableSlots: classDetails.modes.online.maxCapacity,
+          };
+          
+          // Check for conflicts with existing slots (including individual slots)
+          const conflict = await checkSlotConflict(slotData);
+          if (conflict) {
+            conflicts.push({
+              date: date.toDate(),
+              timeSlot: `${timeSlot.startTime} - ${timeSlot.endTime}`,
+              mode: 'online',
+              conflictsWith: conflict,
+              conflictType: 'external_conflict'
+            });
+          } else {
+            slotsToCreate.push(slotData);
+          }
+        }
+      }
+      
+      // Generate offline slots
+      if (modes.offline?.enabled) {
+        for (const timeSlot of timeSlots.offline) {
+          const slotData = {
+            wellnessGuideClass: classDetails._id,
+            wellnessGuide: wellnessGuide._id,
+            mode: 'offline',
+            date: date.toDate(),
+            dayOfWeek,
+            startTime: timeSlot.startTime,
+            endTime: timeSlot.endTime,
+            startTimeUTC: moment.tz(`${date.format('YYYY-MM-DD')} ${timeSlot.startTime}`, classDetails.timezone).utc().toDate(),
+            endTimeUTC: moment.tz(`${date.format('YYYY-MM-DD')} ${timeSlot.endTime}`, classDetails.timezone).utc().toDate(),
+            timezone: classDetails.timezone,
+            maxCapacity: classDetails.modes.offline.maxCapacity,
+            price: classDetails.modes.offline.price,
+            currentBookings: 0,
+            availableSlots: classDetails.modes.offline.maxCapacity,
+          };
+          
+          // Check for conflicts with existing slots (including individual slots)
+          const conflict = await checkSlotConflict(slotData);
+          if (conflict) {
+            conflicts.push({
+              date: date.toDate(),
+              timeSlot: `${timeSlot.startTime} - ${timeSlot.endTime}`,
+              mode: 'offline',
+              conflictsWith: conflict,
+              conflictType: 'external_conflict'
+            });
+          } else {
+            slotsToCreate.push(slotData);
+          }
+        }
+      }
+    }
+    
+    // Check for conflicts within the new recurring schedule itself (intra-schedule conflicts)
+    const intraScheduleConflicts = checkIntraClassConflicts(slotsToCreate);
+    if (intraScheduleConflicts.length > 0) {
+      conflicts.push(...intraScheduleConflicts);
+    }
+    
+    if (conflicts.length > 0) {
+      return res.status(400).json({
+        message: 'Time slot conflicts detected in the new recurring schedule',
+        conflicts,
+        totalConflicts: conflicts.length
+      });
+    }
+    
+    if (slotsToCreate.length === 0) {
+      return res.status(400).json({
+        message: 'No valid time slots to create. Please check your schedule configuration.'
+      });
+    }
+    
+    // Create all new recurring slots
+    const createdSlots = await TimeSlot.insertMany(slotsToCreate);
+    
+    // Update class to track the new latest recurring end date
+    // (This could be stored in a separate field if needed for better tracking)
+    await WellnessGuideClass.findByIdAndUpdate(id, {
+      $set: {
+        'scheduleConfig.lastRecurringEndDate': endDate.toDate()
+      }
+    });
+    
+    res.json({
+      message: `Successfully created ${createdSlots.length} recurring time slots`,
+      recurringSchedule: {
+        dateRange: {
+          startDate: startDate.format('YYYY-MM-DD'),
+          endDate: endDate.format('YYYY-MM-DD')
+        },
+        selectedDays,
+        modesEnabled: {
+          online: modes.online?.enabled || false,
+          offline: modes.offline?.enabled || false
+        },
+        slotsCreated: createdSlots.length,
+        nextRecurringAllowedFrom: endDate.clone().add(1, 'day').format('YYYY-MM-DD')
+      },
+      createdSlots: createdSlots.map(slot => ({
+        id: slot._id,
+        date: moment.tz(slot.date, classDetails.timezone).format('YYYY-MM-DD'),
+        dayOfWeek: slot.dayOfWeek,
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+        mode: slot.mode,
+        maxCapacity: slot.maxCapacity,
+        price: slot.price
+      }))
+    });
+    
+  } catch (error) {
+    console.error('Error adding recurring time slots:', error);
+    res.status(500).json({ 
+      message: 'Error adding recurring time slots',
+      error: error.message 
+    });
+  }
+};
 
 module.exports = {
   createWellnessGuideClass,
@@ -1570,5 +1824,6 @@ module.exports = {
   updateWellnessGuideClass,
   addTimeSlots,        // New
   removeTimeSlot,
-  getScheduleExtensionInfo      // New
+  getScheduleExtensionInfo,
+  addRecurringTimeSlots      // New
 };

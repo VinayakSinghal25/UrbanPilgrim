@@ -69,6 +69,14 @@ const sendVerificationOTP = async (req, res) => {
 
   } catch (error) {
     console.error('Error sending verification OTP:', error);
+    
+    // Handle duplicate key errors from race conditions
+    if (error.code === 11000 || error.message.includes('duplicate')) {
+      return res.status(429).json({ 
+        message: 'Please wait 1 minute before requesting another OTP' 
+      });
+    }
+    
     res.status(500).json({ 
       message: 'Error sending verification code',
       error: error.message 

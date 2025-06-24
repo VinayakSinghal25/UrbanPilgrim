@@ -31,15 +31,74 @@ const createWellnessGuide = async (req, res) => {
       });
     }
     
+    // Parse JSON fields from FormData if they are strings
+    if (req.body.addresses && typeof req.body.addresses === 'string') {
+      try {
+        req.body.addresses = JSON.parse(req.body.addresses);
+      } catch (error) {
+        console.error('Error parsing addresses:', error);
+        return res.status(400).json({ 
+          message: 'Invalid addresses format' 
+        });
+      }
+    }
+
+    if (req.body.areaOfExpertise && typeof req.body.areaOfExpertise === 'string') {
+      try {
+        req.body.areaOfExpertise = JSON.parse(req.body.areaOfExpertise);
+      } catch (error) {
+        console.error('Error parsing areaOfExpertise:', error);
+        return res.status(400).json({ 
+          message: 'Invalid area of expertise format' 
+        });
+      }
+    }
+
+    if (req.body.languages && typeof req.body.languages === 'string') {
+      try {
+        req.body.languages = JSON.parse(req.body.languages);
+      } catch (error) {
+        console.error('Error parsing languages:', error);
+        return res.status(400).json({ 
+          message: 'Invalid languages format' 
+        });
+      }
+    }
+    
     const {
       firstName,
       lastName,
       contactNumber,
+      gender,
+      customGender,
       profileDescription,
       areaOfExpertise,
       languages,
       addresses // Array of all addresses user wants to save
     } = req.body;
+    
+    // Validate gender
+    if (!gender) {
+      return res.status(400).json({ 
+        message: 'Gender is required' 
+      });
+    }
+    
+    const validGenders = ['Male', 'Female', 'Others'];
+    if (!validGenders.includes(gender)) {
+      return res.status(400).json({ 
+        message: 'Gender must be one of: Male, Female, Others' 
+      });
+    }
+    
+    // Validate customGender when gender is 'Others'
+    if (gender === 'Others') {
+      if (!customGender || customGender.trim().length === 0) {
+        return res.status(400).json({ 
+          message: 'Custom gender is required when "Others" is selected' 
+        });
+      }
+    }
     
     // Validate addresses - at least one is required
     if (!addresses || !Array.isArray(addresses) || addresses.length === 0) {
@@ -91,15 +150,23 @@ const createWellnessGuide = async (req, res) => {
     await user.save();
     
     // Create wellness guide profile (isApproved = false by default)
-    const wellnessGuide = new WellnessGuide({
+    const wellnessGuideData = {
       user: userId,
       email: user.email, // Use verified email from user
       contactNumber,
+      gender,
       profileDescription,
       areaOfExpertise,
       languages,
       profilePictures
-    });
+    };
+    
+    // Add customGender only if gender is 'Others'
+    if (gender === 'Others') {
+      wellnessGuideData.customGender = customGender.trim();
+    }
+    
+    const wellnessGuide = new WellnessGuide(wellnessGuideData);
     
     await wellnessGuide.save();
     
@@ -165,15 +232,70 @@ const updateWellnessGuideProfile = async (req, res) => {
       return res.status(404).json({ message: 'Wellness guide profile not found' });
     }
     
+    // Parse JSON fields from FormData if they are strings (for update as well)
+    if (req.body.addresses && typeof req.body.addresses === 'string') {
+      try {
+        req.body.addresses = JSON.parse(req.body.addresses);
+      } catch (error) {
+        console.error('Error parsing addresses:', error);
+        return res.status(400).json({ 
+          message: 'Invalid addresses format' 
+        });
+      }
+    }
+
+    if (req.body.areaOfExpertise && typeof req.body.areaOfExpertise === 'string') {
+      try {
+        req.body.areaOfExpertise = JSON.parse(req.body.areaOfExpertise);
+      } catch (error) {
+        console.error('Error parsing areaOfExpertise:', error);
+        return res.status(400).json({ 
+          message: 'Invalid area of expertise format' 
+        });
+      }
+    }
+
+    if (req.body.languages && typeof req.body.languages === 'string') {
+      try {
+        req.body.languages = JSON.parse(req.body.languages);
+      } catch (error) {
+        console.error('Error parsing languages:', error);
+        return res.status(400).json({ 
+          message: 'Invalid languages format' 
+        });
+      }
+    }
+    
     const {
       firstName,
       lastName,
       contactNumber,
+      gender,
+      customGender,
       profileDescription,
       areaOfExpertise,
       languages,
       addresses // Array of all addresses user wants to save
     } = req.body;
+    
+    // Validate gender if provided
+    if (gender !== undefined) {
+      const validGenders = ['Male', 'Female', 'Others'];
+      if (!validGenders.includes(gender)) {
+        return res.status(400).json({ 
+          message: 'Gender must be one of: Male, Female, Others' 
+        });
+      }
+      
+      // Validate customGender when gender is 'Others'
+      if (gender === 'Others') {
+        if (!customGender || customGender.trim().length === 0) {
+          return res.status(400).json({ 
+            message: 'Custom gender is required when "Others" is selected' 
+          });
+        }
+      }
+    }
     
     // Get user for updates
     const user = await User.findById(userId);
@@ -237,6 +359,15 @@ const updateWellnessGuideProfile = async (req, res) => {
     
     // Update wellness guide fields
     if (contactNumber !== undefined) wellnessGuide.contactNumber = contactNumber;
+    if (gender !== undefined) {
+      wellnessGuide.gender = gender;
+      // Handle customGender based on gender
+      if (gender === 'Others') {
+        wellnessGuide.customGender = customGender.trim();
+      } else {
+        wellnessGuide.customGender = undefined;
+      }
+    }
     if (profileDescription !== undefined) wellnessGuide.profileDescription = profileDescription;
     if (areaOfExpertise !== undefined) wellnessGuide.areaOfExpertise = areaOfExpertise;
     if (languages !== undefined) wellnessGuide.languages = languages;

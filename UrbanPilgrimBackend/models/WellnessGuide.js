@@ -2,6 +2,7 @@
 const mongoose = require('mongoose');
 
 const languagesEnum = ['English', 'Hindi', 'Spanish', 'French', 'Other'];
+const genderEnum = ['Male', 'Female', 'Others'];
 
 const wellnessGuideSchema = new mongoose.Schema({
   user: {
@@ -21,6 +22,25 @@ const wellnessGuideSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Contact number is required'],
     trim: true,
+  },
+  gender: {
+    type: String,
+    enum: genderEnum,
+    required: [true, 'Gender is required'],
+  },
+  customGender: {
+    type: String,
+    trim: true,
+    validate: {
+      validator: function(value) {
+        // customGender is required only when gender is 'Others'
+        if (this.gender === 'Others') {
+          return value && value.trim().length > 0;
+        }
+        return true;
+      },
+      message: 'Custom gender is required when "Others" is selected'
+    }
   },
   profileDescription: {
     type: String,
@@ -79,6 +99,14 @@ const wellnessGuideSchema = new mongoose.Schema({
     ref: 'User',
   },
 }, { timestamps: true });
+
+// Pre-save middleware to clear customGender if gender is not 'Others'
+wellnessGuideSchema.pre('save', function(next) {
+  if (this.gender !== 'Others') {
+    this.customGender = undefined;
+  }
+  next();
+});
 
 // Index for faster queries
 // REMOVED: wellnessGuideSchema.index({ user: 1 }); // Redundant - 'unique: true' already creates an index
