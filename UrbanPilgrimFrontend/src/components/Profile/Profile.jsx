@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { logout } from "../../slices/authSlice";
 import UserProfile from "./UserProfile";
-import TrainerProfile from "./TrainerProfile";
+import WellnessGuideProfile from "./WellnessGuideProfile";
 import AdminProfile from "./AdminProfile";
 
 export default function Profile() {
@@ -44,12 +44,9 @@ export default function Profile() {
         <div className="flex justify-between items-center py-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">My Profile</h1>
-            <p className="text-gray-600">Welcome back, {user.name}!</p>
+            <p className="text-gray-600">Welcome back, {user.firstName} {user.lastName}!</p>
           </div>
           <div className="flex items-center space-x-4">
-            <span className="text-sm text-gray-500">
-              Role: {user.roles?.join(', ') || 'User'}
-            </span>
             <button
               onClick={() => navigate('/')}
               className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200"
@@ -68,13 +65,23 @@ export default function Profile() {
     </div>
   );
 
+  // Function to render the appropriate profile component based on user roles
+  const renderProfileComponent = () => {
+    // Priority order: ADMIN > WELLNESS_GUIDE > USER (default)
+    if (user.roles?.includes("ADMIN")) {
+      return <AdminProfile user={user} />;
+    } else if (user.roles?.includes("WELLNESS_GUIDE")) {
+      return <WellnessGuideProfile user={user} />;
+    } else {
+      return <UserProfile user={user} />;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <ProfileHeader />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {user.roles?.includes("ADMIN") && <AdminProfile user={user} />}
-        {user.roles?.includes("TRAINER") && <TrainerProfile user={user} />}
-        {(!user.roles || user.roles.length === 0 || user.roles.includes("USER")) && <UserProfile user={user} />}
+        {renderProfileComponent()}
       </div>
     </div>
   );

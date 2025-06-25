@@ -633,6 +633,34 @@ const getWellnessGuideById = async (req, res) => {
 //     });
 //   }
 // };
+// @desc    Get wellness guide by ID (Admin access - can see pending guides)
+// @route   GET /api/wellness-guides/admin/:id
+// @access  Private (Admin only)
+const getWellnessGuideByIdAdmin = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const wellnessGuide = await WellnessGuide.findById(id)
+      .populate('user', 'firstName lastName email address roles')
+      .populate('areaOfExpertise', 'name description')
+      .populate('wellnessGuideClasses')
+      .populate('approvedBy', 'firstName lastName email');
+    
+    if (!wellnessGuide) {
+      return res.status(404).json({ message: 'Wellness guide not found' });
+    }
+    
+    // Admin can see all guides (approved, pending, inactive)
+    res.json({ wellnessGuide });
+    
+  } catch (error) {
+    console.error('Error fetching wellness guide for admin:', error);
+    res.status(500).json({ 
+      message: 'Error fetching wellness guide',
+      error: error.message 
+    });
+  }
+};
 
 module.exports = {
   createWellnessGuide,
@@ -642,6 +670,7 @@ module.exports = {
   updateWellnessGuideApproval,
   getPendingWellnessGuides,
   checkWellnessGuideEligibility,
-  getWellnessGuideById
+  getWellnessGuideById,
+  getWellnessGuideByIdAdmin
  // getWellnessGuideFormData
 };

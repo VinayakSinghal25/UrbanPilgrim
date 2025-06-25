@@ -11,8 +11,8 @@ const {
   updateWellnessGuideApproval,
   getPendingWellnessGuides,
   checkWellnessGuideEligibility,
-  getWellnessGuideById
-  //getWellnessGuideFormData
+  getWellnessGuideById,
+  getWellnessGuideByIdAdmin
 } = require('../controllers/wellnessGuideController');
 const { authMiddleware } = require('../middleware/authMiddleware');
 const { authorize } = require('../middleware/roleCheck');
@@ -55,10 +55,10 @@ router.get('/eligibility', authMiddleware, checkWellnessGuideEligibility);
 router.get('/pending', authMiddleware, authorize(ROLES.ADMIN), getPendingWellnessGuides);
 router.get('/profile', authMiddleware, getWellnessGuideProfile);
 router.put('/profile', authMiddleware, upload.array('profilePictures', 5), updateWellnessGuideProfile);
-//router.get('/form-data', authMiddleware, getWellnessGuideFormData);
 router.post('/', authMiddleware, upload.array('profilePictures', 5), createWellnessGuide);
 
 // Admin only routes (SPECIFIC PATHS FIRST)
+router.get('/admin/:id', authMiddleware, authorize(ROLES.ADMIN), getWellnessGuideByIdAdmin);
 router.put('/:id/approval', authMiddleware, authorize(ROLES.ADMIN), updateWellnessGuideApproval);
 
 // PARAMETERIZED ROUTES LAST (so they don't catch specific paths)

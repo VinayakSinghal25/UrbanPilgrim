@@ -62,10 +62,10 @@ router.get('/:id/schedule-extension-info', authMiddleware, authorize(ROLES.WELLN
 router.post('/', authMiddleware, authorize(ROLES.WELLNESS_GUIDE), upload.array('photos', 5), createWellnessGuideClass);
 router.put('/:id', authMiddleware, authorize(ROLES.WELLNESS_GUIDE), upload.array('photos', 5), updateWellnessGuideClass);
 
-// Time slot management routes - SPECIFIC PATHS FIRST
-router.post('/:id/time-slots', authMiddleware, authorize(ROLES.WELLNESS_GUIDE), addTimeSlots);
-router.post('/:id/recurring-time-slots', authMiddleware, authorize(ROLES.WELLNESS_GUIDE), addRecurringTimeSlots);
-router.delete('/:id/time-slots/:slotId', authMiddleware, authorize(ROLES.WELLNESS_GUIDE), removeTimeSlot);
+// Time slot management routes - UPDATED TO ACCEPT CLASS ID
+router.post('/:classId/time-slots', authMiddleware, authorize(ROLES.WELLNESS_GUIDE), addTimeSlots);
+router.post('/:classId/recurring-time-slots', authMiddleware, authorize(ROLES.WELLNESS_GUIDE), addRecurringTimeSlots);
+router.delete('/:classId/time-slots/:slotId', authMiddleware, authorize(ROLES.WELLNESS_GUIDE), removeTimeSlot);
 
 // Admin routes - SPECIFIC PATHS FIRST
 router.get('/admin/pending', authMiddleware, authorize(ROLES.ADMIN), getPendingClasses);

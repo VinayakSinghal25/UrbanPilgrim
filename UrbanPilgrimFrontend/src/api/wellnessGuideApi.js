@@ -123,6 +123,56 @@ export async function getWellnessGuideProfile(token) {
   }
 }
 
+// Get wellness guide by ID (Public - only approved guides)
+export async function getWellnessGuideById(token, id) {
+  try {
+    const authToken = token || getToken();
+    if (!authToken) {
+      throw new Error('No authentication token found');
+    }
+
+    const response = await fetch(`${BASE_URL}/${id}`, {
+      method: 'GET',
+      headers: getAuthHeaders(authToken),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to fetch wellness guide details');
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching wellness guide by ID:', error);
+    throw error;
+  }
+}
+
+// Get wellness guide by ID (Admin access - can see pending guides)
+export async function getWellnessGuideByIdAdmin(token, id) {
+  try {
+    const authToken = token || getToken();
+    if (!authToken) {
+      throw new Error('No authentication token found');
+    }
+
+    const response = await fetch(`${BASE_URL}/admin/${id}`, {
+      method: 'GET',
+      headers: getAuthHeaders(authToken),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to fetch wellness guide details');
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching wellness guide by ID (admin):', error);
+    throw error;
+  }
+}
+
 // Get pending wellness guides (Admin only)
 export async function getPendingWellnessGuides(token, page = 1, limit = 10) {
   try {

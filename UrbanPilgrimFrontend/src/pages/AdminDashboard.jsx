@@ -6,6 +6,7 @@ import PilgrimExperienceList from '../components/Admin/PilgrimExperience/Pilgrim
 import CreatePilgrimExperience from '../components/Admin/PilgrimExperience/CreatePilgrimExperience';
 import EditPilgrimExperience from '../components/Admin/PilgrimExperience/EditPilgrimExperience';
 import PendingWellnessGuides from '../components/Admin/WellnessGuide/PendingWellnessGuides';
+import WellnessGuideDetail from '../components/Admin/WellnessGuide/WellnessGuideDetail';
 import { 
   ChartBarIcon, 
   UsersIcon, 
@@ -159,6 +160,7 @@ const AdminDashboard = () => {
         <Route path="pilgrim-experiences/create" element={<CreatePilgrimExperience />} />
         <Route path="pilgrim-experiences/edit/:id" element={<EditPilgrimExperience />} />
         <Route path="pending-wellness-guides" element={<PendingWellnessGuides />} />
+        <Route path="wellness-guide/:id" element={<WellnessGuideDetail />} />
         <Route path="users" element={<div>Users Management - Coming Soon</div>} />
         <Route path="analytics" element={<div>Analytics - Coming Soon</div>} />
         <Route path="settings" element={<div>Settings - Coming Soon</div>} />
