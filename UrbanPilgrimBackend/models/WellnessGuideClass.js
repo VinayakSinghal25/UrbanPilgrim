@@ -17,34 +17,31 @@ const wellnessGuideClassSchema = new mongoose.Schema({
     required: [true, 'Class description is required'],
     trim: true,
   },
-  about: {
-    type: String,
-    required: [true, 'About section is required'],
-    trim: true,
-  },
   // Photos for the class
   photos: [{
     type: String, // Cloudinary URLs or file paths
     required: false
   }],
-  // Guide's certifications (what the guide has)
+  // Guide's certifications (what the guide has) - OPTIONAL
   guideCertifications: [{
     type: String,
     trim: true,
   }],
+  // Skills to learn - OPTIONAL
   skillsToLearn: [{
     type: String,
     trim: true,
   }],
+  // About sections - OPTIONAL
   aboutSections: [{
     header: {
       type: String,
-      required: true,
+      required: false, // Made optional
       trim: true,
     },
     paragraph: {
       type: String,
-      required: true,
+      required: false, // Made optional
       trim: true,
     }
   }],
@@ -123,14 +120,14 @@ const wellnessGuideClassSchema = new mongoose.Schema({
       }
     }
   },
-  // Schedule configuration
+  // UPDATED Schedule configuration - separate for online and offline
   scheduleConfig: {
-    selectedDays: [{
-      type: String,
-      enum: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
-    }],
-    timeSlots: {
-      online: [{
+    online: {
+      selectedDays: [{
+        type: String,
+        enum: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+      }],
+      timeSlots: [{
         startTime: {
           type: String, // Format: "HH:MM"
           required: true,
@@ -140,7 +137,21 @@ const wellnessGuideClassSchema = new mongoose.Schema({
           required: true,
         }
       }],
-      offline: [{
+      dateRange: {
+        startDate: {
+          type: Date,
+        },
+        endDate: {
+          type: Date,
+        }
+      }
+    },
+    offline: {
+      selectedDays: [{
+        type: String,
+        enum: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+      }],
+      timeSlots: [{
         startTime: {
           type: String, // Format: "HH:MM"
           required: true,
@@ -149,16 +160,14 @@ const wellnessGuideClassSchema = new mongoose.Schema({
           type: String, // Format: "HH:MM"
           required: true,
         }
-      }]
-    },
-    dateRange: {
-      startDate: {
-        type: Date,
-        required: true,
-      },
-      endDate: {
-        type: Date,
-        required: true,
+      }],
+      dateRange: {
+        startDate: {
+          type: Date,
+        },
+        endDate: {
+          type: Date,
+        }
       }
     }
   },
@@ -268,15 +277,37 @@ const wellnessGuideClassSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-// Validation
+// UPDATED Validation
 wellnessGuideClassSchema.pre('save', function(next) {
   // At least one mode must be enabled
   if (!this.modes.online.enabled && !this.modes.offline.enabled) {
     return next(new Error('At least one mode (online or offline) must be enabled'));
   }
   
-  // Validate offline address is provided when offline mode is enabled
+  // Validate online mode requirements
+  if (this.modes.online.enabled) {
+    if (!this.modes.online.maxCapacity || !this.modes.online.price) {
+      return next(new Error('Online mode requires maxCapacity and price'));
+    }
+    
+    // Validate online schedule if provided
+    if (this.scheduleConfig.online.selectedDays && this.scheduleConfig.online.selectedDays.length > 0) {
+      if (!this.scheduleConfig.online.dateRange.startDate || !this.scheduleConfig.online.dateRange.endDate) {
+        return next(new Error('Online mode requires date range when days are selected'));
+      }
+      if (this.scheduleConfig.online.dateRange.startDate >= this.scheduleConfig.online.dateRange.endDate) {
+        return next(new Error('Online start date must be before end date'));
+      }
+    }
+  }
+  
+  // Validate offline mode requirements
   if (this.modes.offline.enabled) {
+    if (!this.modes.offline.maxCapacity || !this.modes.offline.price) {
+      return next(new Error('Offline mode requires maxCapacity and price'));
+    }
+    
+    // Validate offline address
     if (!this.modes.offline.address || 
         !this.modes.offline.address.street || 
         !this.modes.offline.address.city || 
@@ -284,18 +315,32 @@ wellnessGuideClassSchema.pre('save', function(next) {
         !this.modes.offline.address.zipCode) {
       return next(new Error('Offline address is required when offline mode is enabled'));
     }
+    
+    // Validate offline schedule if provided
+    if (this.scheduleConfig.offline.selectedDays && this.scheduleConfig.offline.selectedDays.length > 0) {
+      if (!this.scheduleConfig.offline.dateRange.startDate || !this.scheduleConfig.offline.dateRange.endDate) {
+        return next(new Error('Offline mode requires date range when days are selected'));
+      }
+      if (this.scheduleConfig.offline.dateRange.startDate >= this.scheduleConfig.offline.dateRange.endDate) {
+        return next(new Error('Offline start date must be before end date'));
+      }
+    }
   }
   
-  // Validate date range (max 6 months)
+  // Validate date ranges don't exceed 6 months
   const sixMonthsFromNow = new Date();
   sixMonthsFromNow.setMonth(sixMonthsFromNow.getMonth() + 6);
   
-  if (this.scheduleConfig.dateRange.endDate > sixMonthsFromNow) {
-    return next(new Error('Class cannot be scheduled more than 6 months in advance'));
+  if (this.modes.online.enabled && this.scheduleConfig.online.dateRange.endDate) {
+    if (this.scheduleConfig.online.dateRange.endDate > sixMonthsFromNow) {
+      return next(new Error('Online classes cannot be scheduled more than 6 months in advance'));
+    }
   }
   
-  if (this.scheduleConfig.dateRange.startDate >= this.scheduleConfig.dateRange.endDate) {
-    return next(new Error('Start date must be before end date'));
+  if (this.modes.offline.enabled && this.scheduleConfig.offline.dateRange.endDate) {
+    if (this.scheduleConfig.offline.dateRange.endDate > sixMonthsFromNow) {
+      return next(new Error('Offline classes cannot be scheduled more than 6 months in advance'));
+    }
   }
   
   // Initialize adminSettings if not present

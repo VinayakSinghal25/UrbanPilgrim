@@ -17,6 +17,7 @@ import JoinCuratorsPage from './pages/JoinCuratorsPage';
 import JoinGuidesPage from './pages/JoinGuidesPage';
 import WellnessGuideFormPage from './pages/WellnessGuideFormPage';
 import WellnessGuideDashboard from './pages/WellnessGuideDashboard';
+import CreateWellnessGuideClass from './pages/CreateWellnessGuideClass';
 import EmailVerificationPage from './pages/EmailVerificationPage';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
@@ -80,6 +81,16 @@ function App() {
               element={
                 <ProtectedRoute>
                   <WellnessGuideDashboard />
+                </ProtectedRoute>
+              } 
+            />
+
+            {/* Wellness Guide Create Class */}
+            <Route 
+              path="/wellness-guide/create-class" 
+              element={
+                <ProtectedRoute requiredRole="WELLNESS_GUIDE">
+                  <CreateWellnessGuideClass />
                 </ProtectedRoute>
               } 
             />
