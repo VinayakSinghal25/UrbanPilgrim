@@ -103,6 +103,10 @@ const wellnessGuideClassSchema = new mongoose.Schema({
           type: String,
           trim: true
         },
+        pincode: {
+          type: String,
+          trim: true
+        },
         country: {
           type: String,
           trim: true,
@@ -117,6 +121,11 @@ const wellnessGuideClassSchema = new mongoose.Schema({
           enum: ['home', 'office', 'studio', 'gym', 'other'],
           default: 'studio'
         }
+      },
+      // Location for offline classes (city name for sorting/filtering)
+      location: {
+        type: String,
+        trim: true
       }
     }
   },
@@ -307,13 +316,17 @@ wellnessGuideClassSchema.pre('save', function(next) {
       return next(new Error('Offline mode requires maxCapacity and price'));
     }
     
-    // Validate offline address
+    // Validate offline address and location
     if (!this.modes.offline.address || 
         !this.modes.offline.address.street || 
         !this.modes.offline.address.city || 
         !this.modes.offline.address.state || 
-        !this.modes.offline.address.zipCode) {
+        (!this.modes.offline.address.zipCode && !this.modes.offline.address.pincode)) {
       return next(new Error('Offline address is required when offline mode is enabled'));
+    }
+    
+    if (!this.modes.offline.location) {
+      return next(new Error('Offline location is required when offline mode is enabled'));
     }
     
     // Validate offline schedule if provided

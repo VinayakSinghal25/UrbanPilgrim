@@ -41,9 +41,10 @@ const createWellnessGuideClass = async (req, res) => {
       scheduleConfig,
       tags,
       difficulty,
-      selectedAddressId,
+      selectedAddress,
       newAddress,
-      isNewAddress
+      isNewAddress,
+      offlineLocation
     } = req.body;
 
     // Parse JSON strings (since we're using FormData)
@@ -78,20 +79,24 @@ const createWellnessGuideClass = async (req, res) => {
       }
     }
 
-    // Handle offline address
+    // Handle offline address with enhanced error handling
     let offlineAddress = null;
     if (parsedModes.offline?.enabled) {
+      console.log('DEBUG - Processing offline address. isNewAddress:', isNewAddress, 'selectedAddress:', selectedAddress);
+      
       if (isNewAddress === 'true') {
+        // Handle new address
         const parsedNewAddress = typeof newAddress === 'string' ? JSON.parse(newAddress) : newAddress;
         
         if (!parsedNewAddress || !parsedNewAddress.street || !parsedNewAddress.city || 
             !parsedNewAddress.state || !parsedNewAddress.zipCode) {
           return res.status(400).json({ 
-            message: 'Complete address is required for offline mode' 
+            message: 'Complete address is required for offline mode. Missing required fields: street, city, state, or zipCode.' 
           });
         }
         
         offlineAddress = parsedNewAddress;
+        console.log('DEBUG - New address parsed:', JSON.stringify(offlineAddress, null, 2));
         
         // Add this address to user's addresses as well
         const user = await User.findById(userId);
@@ -101,56 +106,55 @@ const createWellnessGuideClass = async (req, res) => {
           await user.save();
         }
       } else {
-        if (!selectedAddressId) {
+        // Handle existing address - use complete address object sent from frontend
+        const parsedSelectedAddress = typeof selectedAddress === 'string' ? JSON.parse(selectedAddress) : selectedAddress;
+        
+        if (!parsedSelectedAddress || !parsedSelectedAddress.street || !parsedSelectedAddress.city || 
+            !parsedSelectedAddress.state || (!parsedSelectedAddress.zipCode && !parsedSelectedAddress.pincode)) {
           return res.status(400).json({ 
-            message: 'Please select an address or provide a new one for offline mode' 
+            message: 'Please select a valid address for offline mode' 
           });
         }
         
-        const user = await User.findById(userId);
-        if (!user || !user.address) {
-          return res.status(400).json({ 
-            message: 'No addresses found for this user' 
-          });
-        }
-        
-        const selectedAddress = user.address.id(selectedAddressId);
-        if (!selectedAddress) {
-          return res.status(400).json({ 
-            message: 'Selected address not found' 
-          });
-        }
-        
-        offlineAddress = selectedAddress.toObject();
+        offlineAddress = parsedSelectedAddress;
+        console.log('DEBUG - Using existing address from frontend:', JSON.stringify(offlineAddress, null, 2));
       }
       
+      // Ensure address is properly attached
+      if (!offlineAddress) {
+          return res.status(400).json({ 
+          message: 'Failed to process address for offline mode' 
+          });
+        }
+        
       parsedModes.offline.address = offlineAddress;
+      console.log('DEBUG - Address attached to parsedModes.offline.address');
     }
 
     // NEW: Validate schedule configuration for separate online/offline scheduling
     if (parsedModes.online?.enabled) {
       if (!parsedScheduleConfig.online?.selectedDays || parsedScheduleConfig.online.selectedDays.length === 0) {
-        return res.status(400).json({ 
+      return res.status(400).json({ 
           message: 'At least one day must be selected for online mode' 
-        });
-      }
-      
+      });
+    }
+    
       if (!parsedScheduleConfig.online?.dateRange?.startDate || !parsedScheduleConfig.online?.dateRange?.endDate) {
-        return res.status(400).json({ 
+      return res.status(400).json({ 
           message: 'Date range is required for online mode' 
-        });
-      }
-      
+      });
+    }
+    
       if (!parsedScheduleConfig.online?.timeSlots || parsedScheduleConfig.online.timeSlots.length === 0) {
-        return res.status(400).json({ 
-          message: 'Online time slots are required when online mode is enabled' 
-        });
+      return res.status(400).json({ 
+        message: 'Online time slots are required when online mode is enabled' 
+      });
       }
     }
     
     if (parsedModes.offline?.enabled) {
       if (!parsedScheduleConfig.offline?.selectedDays || parsedScheduleConfig.offline.selectedDays.length === 0) {
-        return res.status(400).json({ 
+      return res.status(400).json({ 
           message: 'At least one day must be selected for offline mode' 
         });
       }
@@ -168,33 +172,37 @@ const createWellnessGuideClass = async (req, res) => {
       }
     }
 
-    // Upload photos to Cloudinary
-    const photoUrls = [];
-    if (req.files && req.files.length > 0) {
-      for (const file of req.files) {
-        try {
-          const result = await cloudinary.uploader.upload(file.path, {
-            folder: 'wellness-guide-classes',
-            transformation: [
-              { width: 800, height: 600, crop: 'fill', quality: 'auto' }
-            ]
-          });
-          photoUrls.push(result.secure_url);
-          
-          // Delete local file
-          fs.unlinkSync(file.path);
-        } catch (uploadError) {
-          console.error('Error uploading photo:', uploadError);
-        }
+    // Handle offline location validation
+    if (parsedModes.offline?.enabled) {
+      if (!offlineLocation || offlineLocation.trim() === '') {
+        return res.status(400).json({ 
+          message: 'Location is required for offline mode' 
+        });
       }
+      
+      parsedModes.offline.location = offlineLocation.trim();
     }
+
+    // Store temporary file paths for background upload
+    const tempPhotoPaths = [];
+    if (req.files && req.files.length > 0) {
+      tempPhotoPaths.push(...req.files.map(file => file.path));
+    }
+    
+    // DEBUG: Log address processing
+    console.log('DEBUG - Address processing details:');
+    console.log('  isNewAddress:', isNewAddress);
+    console.log('  selectedAddress received:', selectedAddress);
+    console.log('  parsedModes.offline.enabled:', parsedModes.offline?.enabled);
+    console.log('  offlineAddress result:', JSON.stringify(offlineAddress, null, 2));
+    console.log('  Final parsedModes.offline:', JSON.stringify(parsedModes.offline, null, 2));
     
     // Create the class
     const wellnessGuideClass = new WellnessGuideClass({
       wellnessGuide: wellnessGuide._id,
       title,
       description,
-      photos: photoUrls,
+      photos: [], // Photos will be uploaded in background
       guideCertifications: parsedGuideCertifications || [],
       skillsToLearn: parsedSkillsToLearn || [],
       aboutSections: parsedAboutSections || [],
@@ -222,8 +230,13 @@ const createWellnessGuideClass = async (req, res) => {
     
     await scheduleRequest.save();
     
-    // Queue the slot generation
+    // Queue the slot generation and photo upload
     processSlotGeneration(scheduleRequest._id);
+    
+    // Process photo uploads in background
+    if (tempPhotoPaths.length > 0) {
+      processPhotoUploads(wellnessGuideClass._id, tempPhotoPaths);
+    }
     
     await wellnessGuideClass.populate([
       { path: 'wellnessGuide', select: 'user email', populate: { path: 'user', select: 'firstName lastName' } },
@@ -231,9 +244,10 @@ const createWellnessGuideClass = async (req, res) => {
     ]);
     
     res.status(201).json({
-      message: 'Class created successfully. Time slots are being generated and will be validated for conflicts.',
+      message: 'Class created successfully. Time slots and photos are being processed in the background.',
       wellnessGuideClass,
-      scheduleRequestId: scheduleRequest._id
+      scheduleRequestId: scheduleRequest._id,
+      photosProcessing: tempPhotoPaths.length > 0
     });
     
   } catch (error) {
@@ -310,6 +324,57 @@ const checkIntraClassConflicts = (slotsToCreate) => {
   return conflicts;
 };
 
+// @desc    Process photo uploads (background job)
+const processPhotoUploads = async (classId, tempPhotoPaths) => {
+  try {
+    console.log(`Starting photo upload for class ${classId}, ${tempPhotoPaths.length} photos`);
+    
+    const photoUrls = [];
+    for (const filePath of tempPhotoPaths) {
+      try {
+        const result = await cloudinary.uploader.upload(filePath, {
+          folder: 'wellness-guide-classes',
+          transformation: [
+            { width: 800, height: 600, crop: 'fill', quality: 'auto' }
+          ]
+        });
+        photoUrls.push(result.secure_url);
+        
+        // Delete local file
+        fs.unlinkSync(filePath);
+      } catch (uploadError) {
+        console.error('Error uploading photo:', uploadError);
+        // Delete local file even if upload failed
+        try {
+          fs.unlinkSync(filePath);
+        } catch (deleteError) {
+          console.error('Error deleting local file:', deleteError);
+        }
+      }
+    }
+    
+    // Update class with uploaded photo URLs
+    if (photoUrls.length > 0) {
+      await WellnessGuideClass.findByIdAndUpdate(classId, {
+        photos: photoUrls
+      });
+      console.log(`Successfully uploaded ${photoUrls.length} photos for class ${classId}`);
+    }
+    
+  } catch (error) {
+    console.error('Error processing photo uploads:', error);
+    
+    // Clean up local files in case of error
+    tempPhotoPaths.forEach(filePath => {
+      try {
+        fs.unlinkSync(filePath);
+      } catch (deleteError) {
+        console.error('Error deleting local file during cleanup:', deleteError);
+      }
+    });
+  }
+};
+
 // @desc    Process slot generation (background job) - UPDATED for separate online/offline scheduling
 const processSlotGeneration = async (scheduleRequestId) => {
   let scheduleRequest; // Declare outside try block for error handling access
@@ -336,14 +401,14 @@ const processSlotGeneration = async (scheduleRequestId) => {
       const onlineConfig = scheduleConfig.online;
       const startDate = moment.tz(onlineConfig.dateRange.startDate, timezone);
       const endDate = moment.tz(onlineConfig.dateRange.endDate, timezone);
+    
+    for (let date = startDate.clone(); date.isSameOrBefore(endDate); date.add(1, 'day')) {
+      const dayOfWeek = date.format('dddd');
       
-      for (let date = startDate.clone(); date.isSameOrBefore(endDate); date.add(1, 'day')) {
-        const dayOfWeek = date.format('dddd');
-        
         if (!onlineConfig.selectedDays.includes(dayOfWeek)) {
-          continue;
-        }
-        
+        continue;
+      }
+      
         for (const timeSlot of onlineConfig.timeSlots) {
           const slotData = {
             wellnessGuideClass: scheduleRequest.wellnessGuideClass._id,
@@ -375,12 +440,12 @@ const processSlotGeneration = async (scheduleRequestId) => {
           } else {
             slotsToCreate.push(slotData);
           }
+          }
         }
       }
-    }
-    
+      
     // Generate offline slots if enabled
-    if (modes.offline?.enabled) {
+      if (modes.offline?.enabled) {
       const offlineConfig = scheduleConfig.offline;
       const startDate = moment.tz(offlineConfig.dateRange.startDate, timezone);
       const endDate = moment.tz(offlineConfig.dateRange.endDate, timezone);
@@ -976,9 +1041,10 @@ const updateWellnessGuideClass = async (req, res) => {
       scheduleConfig,
       tags,
       difficulty,
-      selectedAddressId,
+      selectedAddress,
       newAddress,
       isNewAddress,
+      offlineLocation,
       removePhotos // Array of photo URLs to remove
     } = req.body;
 
@@ -1018,17 +1084,21 @@ const updateWellnessGuideClass = async (req, res) => {
     // Handle offline address
     let offlineAddress = null;
     if (parsedModes.offline?.enabled) {
+      console.log('DEBUG - Processing offline address. isNewAddress:', isNewAddress, 'selectedAddress:', selectedAddress);
+      
       if (isNewAddress === 'true') {
+        // Handle new address
         const parsedNewAddress = typeof newAddress === 'string' ? JSON.parse(newAddress) : newAddress;
         
         if (!parsedNewAddress || !parsedNewAddress.street || !parsedNewAddress.city || 
             !parsedNewAddress.state || !parsedNewAddress.zipCode) {
           return res.status(400).json({ 
-            message: 'Complete address is required for offline mode' 
+            message: 'Complete address is required for offline mode. Missing required fields: street, city, state, or zipCode.' 
           });
         }
         
         offlineAddress = parsedNewAddress;
+        console.log('DEBUG - New address parsed:', JSON.stringify(offlineAddress, null, 2));
         
         // Add this address to user's addresses as well
         const user = await User.findById(userId);
@@ -1038,36 +1108,35 @@ const updateWellnessGuideClass = async (req, res) => {
           await user.save();
         }
       } else {
-        if (!selectedAddressId) {
+        // Handle existing address - use complete address object sent from frontend
+        const parsedSelectedAddress = typeof selectedAddress === 'string' ? JSON.parse(selectedAddress) : selectedAddress;
+        
+        if (!parsedSelectedAddress || !parsedSelectedAddress.street || !parsedSelectedAddress.city || 
+            !parsedSelectedAddress.state || (!parsedSelectedAddress.zipCode && !parsedSelectedAddress.pincode)) {
           return res.status(400).json({ 
-            message: 'Please select an address or provide a new one for offline mode' 
+            message: 'Please select a valid address for offline mode' 
           });
         }
         
-        const user = await User.findById(userId);
-        if (!user || !user.address) {
+        offlineAddress = parsedSelectedAddress;
+        console.log('DEBUG - Using existing address from frontend:', JSON.stringify(offlineAddress, null, 2));
+      }
+      
+      // Ensure address is properly attached
+      if (!offlineAddress) {
           return res.status(400).json({ 
-            message: 'No addresses found for this user' 
-          });
-        }
-        
-        const selectedAddress = user.address.id(selectedAddressId);
-        if (!selectedAddress) {
-          return res.status(400).json({ 
-            message: 'Selected address not found' 
-          });
-        }
-        
-        offlineAddress = selectedAddress.toObject();
+          message: 'Failed to process address for offline mode' 
+        });
       }
       
       parsedModes.offline.address = offlineAddress;
+      console.log('DEBUG - Address attached to parsedModes.offline.address');
     }
 
     // NEW: Validate schedule configuration for separate online/offline scheduling
     if (parsedModes.online?.enabled) {
       if (!parsedScheduleConfig.online?.selectedDays || parsedScheduleConfig.online.selectedDays.length === 0) {
-        return res.status(400).json({ 
+          return res.status(400).json({ 
           message: 'At least one day must be selected for online mode' 
         });
       }
@@ -1087,22 +1156,33 @@ const updateWellnessGuideClass = async (req, res) => {
     
     if (parsedModes.offline?.enabled) {
       if (!parsedScheduleConfig.offline?.selectedDays || parsedScheduleConfig.offline.selectedDays.length === 0) {
-        return res.status(400).json({ 
+      return res.status(400).json({ 
           message: 'At least one day must be selected for offline mode' 
-        });
-      }
-      
+      });
+    }
+    
       if (!parsedScheduleConfig.offline?.dateRange?.startDate || !parsedScheduleConfig.offline?.dateRange?.endDate) {
-        return res.status(400).json({ 
+      return res.status(400).json({ 
           message: 'Date range is required for offline mode' 
-        });
+      });
+    }
+
+      if (!parsedScheduleConfig.offline?.timeSlots || parsedScheduleConfig.offline.timeSlots.length === 0) {
+      return res.status(400).json({ 
+          message: 'Offline time slots are required when offline mode is enabled' 
+      });
+      }
+    }
+    
+    // Handle offline location validation
+    if (parsedModes.offline?.enabled) {
+      if (!offlineLocation || offlineLocation.trim() === '') {
+      return res.status(400).json({ 
+          message: 'Location is required for offline mode' 
+      });
       }
       
-      if (!parsedScheduleConfig.offline?.timeSlots || parsedScheduleConfig.offline.timeSlots.length === 0) {
-        return res.status(400).json({ 
-          message: 'Offline time slots are required when offline mode is enabled' 
-        });
-      }
+      parsedModes.offline.location = offlineLocation.trim();
     }
 
     // Handle photo updates
@@ -1541,10 +1621,10 @@ const getScheduleExtensionInfo = async (req, res) => {
             originalOnlinePattern.selectedDays.includes(slot.dayOfWeek)) {
           
           const matchesOriginalTime = originalOnlinePattern.timeSlots.some(ts => 
-            ts.startTime === slot.startTime && ts.endTime === slot.endTime
-          );
-          
-          if (matchesOriginalTime) {
+          ts.startTime === slot.startTime && ts.endTime === slot.endTime
+        );
+        
+        if (matchesOriginalTime) {
             originalRecurringSlotsOnline.push(slot);
             isOriginalRecurring = true;
           }
@@ -1596,7 +1676,7 @@ const getScheduleExtensionInfo = async (req, res) => {
     let potentialOfflineSlotsCount = 0;
 
     if (originalOnlinePattern) {
-      for (let date = suggestedStartDate.clone(); date.isSameOrBefore(suggestedEndDate); date.add(1, 'day')) {
+    for (let date = suggestedStartDate.clone(); date.isSameOrBefore(suggestedEndDate); date.add(1, 'day')) {
         if (originalOnlinePattern.selectedDays.includes(date.format('dddd'))) {
           potentialOnlineSlotsCount += originalOnlinePattern.timeSlots.length;
         }
