@@ -9,6 +9,7 @@ import Banner from './components/Banner';
 import PilgrimExperiences from './components/PilgrimExperiences/PilgrimExperiences';
 import PilgrimExperienceDetail from './components/PilgrimExperiences/PilgrimExperienceDetail';
 import ExperienceDetail from './components/User/PilgrimExperienceBooking/ExperienceDetail';
+import WellnessGuideClasses from './components/WellnessGuideClasses/WellnessGuideClasses';
 import WhoWeArePage from './pages/WhoWeArePage';
 import WhyChooseUsPage from './pages/WhyChooseUsPage';
 import ContactPage from './pages/ContactPage';
@@ -46,6 +47,8 @@ function App() {
             <Route path="/pilgrim-experiences" element={<PilgrimExperiences />} />
             <Route path="/pilgrim-experiences/:id" element={<PilgrimExperienceDetail />} />
             <Route path="/experience/:id" element={<ExperienceDetail />} />
+            <Route path="/wellness-guides" element={<WellnessGuideClasses />} />
+            <Route path="/wellness-guide-classes/:id" element={<div>Wellness Guide Class Details - Coming Soon</div>} />
             <Route path="/who-we-are" element={<WhoWeArePage />} />
             <Route path="/why-choose-us" element={<WhyChooseUsPage />} />
             <Route path="/contact" element={<ContactPage />} />

@@ -2456,6 +2456,113 @@ const updateClassDetails = async (req, res) => {
   }
 };
 
+// @desc    Get all approved wellness guide classes (Public)
+// @route   GET /api/wellness-guide-classes
+// @access  Public
+const getAllApprovedClasses = async (req, res) => {
+  try {
+    const { page = 1, limit = 12, specialty, mode, location, sortBy = 'createdAt' } = req.query;
+    
+    // Base filter for approved and active classes
+    let filter = { 
+      status: 'active',
+      isActive: true
+    };
+    
+    // Add specialty filter if provided
+    if (specialty) {
+      filter.specialty = specialty;
+    }
+    
+    // Add mode filter if provided (online/offline)
+    if (mode) {
+      if (mode === 'online') {
+        filter['modes.online.enabled'] = true;
+      } else if (mode === 'offline') {
+        filter['modes.offline.enabled'] = true;
+      }
+    }
+    
+    // Add location filter for offline classes
+    if (location) {
+      filter['modes.offline.location'] = { $regex: location, $options: 'i' };
+    }
+    
+    // Sort options
+    let sortOptions = {};
+    switch (sortBy) {
+      case 'price-low':
+        sortOptions = { 'modes.online.price': 1, 'modes.offline.price': 1 };
+        break;
+      case 'price-high':
+        sortOptions = { 'modes.online.price': -1, 'modes.offline.price': -1 };
+        break;
+      case 'newest':
+        sortOptions = { createdAt: -1 };
+        break;
+      case 'oldest':
+        sortOptions = { createdAt: 1 };
+        break;
+      default:
+        sortOptions = { createdAt: -1 };
+    }
+    
+    const classes = await WellnessGuideClass.find(filter)
+      .populate('specialty', 'name description')
+      .populate({
+        path: 'wellnessGuide',
+        select: 'user profilePictures profileDescription languages areaOfExpertise',
+        populate: [
+          { 
+            path: 'user', 
+            select: 'firstName lastName' 
+          },
+          {
+            path: 'areaOfExpertise',
+            select: 'name'
+          }
+        ]
+      })
+      .limit(limit * 1)
+      .skip((page - 1) * limit)
+      .sort(sortOptions);
+    
+    const total = await WellnessGuideClass.countDocuments(filter);
+    
+    // Get unique specialties for filtering
+    const specialties = await WellnessGuideClass.distinct('specialty', { status: 'active', isActive: true })
+      .then(async (specialtyIds) => {
+        const Specialty = require('../models/Specialty');
+        return await Specialty.find({ _id: { $in: specialtyIds } }, 'name description');
+      });
+    
+    // Get unique locations for filtering
+    const locations = await WellnessGuideClass.distinct('modes.offline.location', { 
+      status: 'active', 
+      isActive: true,
+      'modes.offline.enabled': true 
+    });
+    
+    res.json({
+      classes,
+      currentPage: parseInt(page),
+      totalPages: Math.ceil(total / limit),
+      totalClasses: total,
+      filters: {
+        specialties,
+        locations: locations.filter(loc => loc) // Remove null/empty locations
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error fetching approved wellness guide classes:', error);
+    res.status(500).json({ 
+      message: 'Error fetching wellness guide classes',
+      error: error.message 
+    });
+  }
+};
+
 module.exports = {
   createWellnessGuideClass,
   getMyAddresses,
@@ -2473,5 +2580,6 @@ module.exports = {
   removeTimeSlot,
   getScheduleExtensionInfo,
   addRecurringTimeSlots,      // New
-  updateClassDetails
+  updateClassDetails,
+  getAllApprovedClasses
 };

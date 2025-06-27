@@ -48,6 +48,16 @@ apiClient.interceptors.response.use(
   }
 );
 
+// Get all approved wellness guide classes (Public)
+export const getAllApprovedClasses = async (params = {}) => {
+  try {
+    const response = await apiClient.get('/', { params });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
 // Get my classes
 export const getMyClasses = async (params = {}) => {
   try {
@@ -194,6 +204,7 @@ export const updateWellnessGuideClassApproval = async (classId, isApproved, reje
 };
 
 export default {
+  getAllApprovedClasses,
   getMyClasses,
   getMyAddresses,
   createWellnessGuideClass,

@@ -18,7 +18,8 @@ const {
   removeTimeSlot,
   addRecurringTimeSlots,
   getScheduleExtensionInfo,
-  updateClassDetails
+  updateClassDetails,
+  getAllApprovedClasses
 } = require('../controllers/wellnessGuideClassController');
 const { authMiddleware } = require('../middleware/authMiddleware');
 const { authorize } = require('../middleware/roleCheck');
@@ -49,6 +50,7 @@ const upload = multer({
 });
 
 // Public routes
+router.get('/', getAllApprovedClasses);
 router.get('/:id', getClassDetails);
 
 // Protected routes (require authentication) - SPECIFIC PATHS FIRST
