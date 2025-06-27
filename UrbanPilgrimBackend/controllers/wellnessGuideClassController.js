@@ -640,8 +640,19 @@ const getClassDetails = async (req, res) => {
     
     const classDetails = await WellnessGuideClass.findById(id)
       .populate('specialty', 'name description')
-      .populate('wellnessGuide', 'user profilePictures', {
-        populate: { path: 'user', select: 'firstName lastName' }
+      .populate({
+        path: 'wellnessGuide',
+        select: 'user email contactNumber profilePictures gender customGender languages areaOfExpertise profileDescription',
+        populate: [
+          { 
+            path: 'user', 
+            select: 'firstName lastName email' 
+          },
+          { 
+            path: 'areaOfExpertise', 
+            select: 'name description' 
+          }
+        ]
       });
     
     if (!classDetails) {
@@ -654,6 +665,16 @@ const getClassDetails = async (req, res) => {
       isActive: true,
       date: { $gte: new Date() } // Only future slots
     }).sort({ date: 1, startTime: 1 });
+    
+    console.log('📋 Class details with populated guide:', {
+      classId: classDetails._id,
+      title: classDetails.title,
+      wellnessGuide: classDetails.wellnessGuide ? {
+        id: classDetails.wellnessGuide._id,
+        email: classDetails.wellnessGuide.email,
+        user: classDetails.wellnessGuide.user
+      } : null
+    });
     
     res.json({
       classDetails,
@@ -668,7 +689,6 @@ const getClassDetails = async (req, res) => {
     });
   }
 };
-
 // @desc    Check schedule request status
 // @route   GET /api/wellness-guide-classes/schedule-status/:requestId
 // @access  Private (Wellness Guides)
@@ -840,10 +860,16 @@ const getPendingClasses = async (req, res) => {
   try {
     const { page = 1, limit = 10 } = req.query;
     
+    // UPDATED: Show all drafts and pending approval classes that haven't been approved yet
     const filter = { 
-      status: 'pending_approval',
       isActive: true,
-      slotsGenerated: true 
+      approvedAt: null, // Only show classes that haven't been approved yet
+      $or: [
+        // All draft classes (includes completed slot generation)
+        { status: 'draft' },
+        // Classes explicitly pending approval
+        { status: 'pending_approval' }
+      ]
     };
     
     const pendingClasses = await WellnessGuideClass.find(filter)
@@ -855,13 +881,68 @@ const getPendingClasses = async (req, res) => {
       .skip((page - 1) * limit)
       .sort({ createdAt: -1 });
     
+    // Get additional info about slot generation for each class
+    const classesWithSlotInfo = await Promise.all(
+      pendingClasses.map(async (classItem) => {
+        const classObj = classItem.toObject();
+        
+        // Get latest schedule request if available
+        const scheduleRequest = await ClassScheduleRequest.findOne({
+          wellnessGuideClass: classItem._id
+        }).sort({ createdAt: -1 });
+        
+        // Add slot generation info
+        classObj.slotGenerationInfo = {
+          status: classItem.slotGenerationStatus,
+          error: classItem.slotGenerationError,
+          slotsGenerated: classItem.slotsGenerated,
+          hasScheduleRequest: !!scheduleRequest,
+          scheduleRequestStatus: scheduleRequest?.status,
+          conflicts: scheduleRequest?.conflicts || [],
+          processedAt: scheduleRequest?.processedAt
+        };
+        
+        // Determine what admin action is needed based on current state
+        if (classItem.status === 'pending_approval') {
+          classObj.adminAction = 'approve_class';
+          classObj.actionMessage = 'Ready for approval';
+        } else if (classItem.status === 'draft' && classItem.slotsGenerated && classItem.slotGenerationStatus === 'completed') {
+          classObj.adminAction = 'approve_class';
+          classObj.actionMessage = 'Slots generated - ready for approval';
+        } else if (classItem.slotGenerationStatus === 'failed') {
+          classObj.adminAction = 'review_failed_slots';
+          classObj.actionMessage = 'Slot generation failed - requires review';
+        } else if (classItem.slotGenerationStatus === 'processing') {
+          classObj.adminAction = 'monitor_processing';
+          classObj.actionMessage = 'Slot generation in progress';
+        } else if (classItem.slotGenerationStatus === 'pending') {
+          classObj.adminAction = 'monitor_pending';
+          classObj.actionMessage = 'Waiting for slot generation to start';
+        } else {
+          classObj.adminAction = 'investigate';
+          classObj.actionMessage = 'Requires investigation';
+        }
+        
+        return classObj;
+      })
+    );
+    
     const total = await WellnessGuideClass.countDocuments(filter);
     
     res.json({
-      pendingClasses,
+      pendingClasses: classesWithSlotInfo,
       currentPage: page,
       totalPages: Math.ceil(total / limit),
-      totalPending: total
+      totalPending: total,
+      filterInfo: {
+        description: 'Shows all classes requiring admin attention (not yet approved)',
+        includes: [
+          'All draft classes that haven\'t been approved (including completed slot generation)',
+          'Classes explicitly pending approval',
+          'Classes with failed or processing slot generation',
+          'Excludes already approved classes'
+        ]
+      }
     });
     
   } catch (error) {
@@ -887,9 +968,26 @@ const updateClassApproval = async (req, res) => {
       return res.status(404).json({ message: 'Wellness guide class not found' });
     }
     
-    if (wellnessGuideClass.status !== 'pending_approval') {
+    // UPDATED: Allow approval of both 'draft' and 'pending_approval' classes that haven't been approved yet
+    if (wellnessGuideClass.approvedAt !== null) {
       return res.status(400).json({ 
-        message: 'Class is not pending approval' 
+        message: 'Class has already been approved' 
+      });
+    }
+    
+    // For draft classes, ensure slot generation is completed before approval
+    if (wellnessGuideClass.status === 'draft') {
+      if (!wellnessGuideClass.slotsGenerated || wellnessGuideClass.slotGenerationStatus !== 'completed') {
+        return res.status(400).json({ 
+          message: 'Class must have completed slot generation before approval' 
+        });
+      }
+    }
+    
+    // Check if class is in a valid state for approval/rejection
+    if (!['draft', 'pending_approval'].includes(wellnessGuideClass.status)) {
+      return res.status(400).json({ 
+        message: `Class cannot be approved/rejected. Current status: ${wellnessGuideClass.status}` 
       });
     }
     

@@ -7,12 +7,15 @@ import CreatePilgrimExperience from '../components/Admin/PilgrimExperience/Creat
 import EditPilgrimExperience from '../components/Admin/PilgrimExperience/EditPilgrimExperience';
 import PendingWellnessGuides from '../components/Admin/WellnessGuide/PendingWellnessGuides';
 import WellnessGuideDetail from '../components/Admin/WellnessGuide/WellnessGuideDetail';
+import PendingWellnessGuideClasses from '../components/Admin/WellnessGuideClass/PendingWellnessGuideClasses';
+import WellnessGuideClassDetail from '../components/Admin/WellnessGuideClass/WellnessGuideClassDetail';
 import { 
   ChartBarIcon, 
   UsersIcon, 
   MapIcon, 
   CurrencyDollarIcon,
-  UserGroupIcon
+  UserGroupIcon,
+  AcademicCapIcon
 } from '@heroicons/react/24/outline';
 
 const AdminDashboard = () => {
@@ -138,6 +141,18 @@ const AdminDashboard = () => {
           
           <button 
             onClick={() => {
+              console.log('Navigate to pending wellness guide classes');
+              navigate('/admin/dashboard/pending-wellness-guide-classes');
+            }}
+            className="p-4 text-left border border-gray-200 rounded-lg hover:border-amber-300 hover:shadow-md transition-all duration-200"
+          >
+            <AcademicCapIcon className="h-8 w-8 text-amber-600 mb-2" />
+            <h3 className="font-semibold text-gray-900">Pending Class Requests</h3>
+            <p className="text-sm text-gray-600">Review and approve wellness guide class submissions</p>
+          </button>
+          
+          <button 
+            onClick={() => {
               console.log('Navigate to analytics');
               navigate('/admin/dashboard/analytics');
             }}
@@ -161,9 +176,11 @@ const AdminDashboard = () => {
         <Route path="pilgrim-experiences/edit/:id" element={<EditPilgrimExperience />} />
         <Route path="pending-wellness-guides" element={<PendingWellnessGuides />} />
         <Route path="wellness-guide/:id" element={<WellnessGuideDetail />} />
+        <Route path="pending-wellness-guide-classes" element={<PendingWellnessGuideClasses />} />
         <Route path="users" element={<div>Users Management - Coming Soon</div>} />
         <Route path="analytics" element={<div>Analytics - Coming Soon</div>} />
         <Route path="settings" element={<div>Settings - Coming Soon</div>} />
+        <Route path="wellness-guide-class/:id" element={<WellnessGuideClassDetail />} />
       </Routes>
     </AdminLayout>
   );

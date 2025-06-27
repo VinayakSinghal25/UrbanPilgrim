@@ -13,7 +13,7 @@ const apiClient = axios.create({
 });
 
 // Helper function to get token (same pattern as working API files)
-const getToken = () => {
+const getAuthToken = () => {
   // Try cookies first, then fallback to localStorage
   let token = getTokenFromCookie();
   if (!token) {
@@ -25,7 +25,7 @@ const getToken = () => {
 // Add request interceptor to include auth token
 apiClient.interceptors.request.use(
   (config) => {
-    const token = getToken(); // Use the correct token retrieval method
+    const token = getAuthToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -96,7 +96,7 @@ export const updateWellnessGuideClass = async (classId, formData) => {
   }
 };
 
-// Update class details (non-schedule changes) - NEW
+// Update class details (non-schedule changes)
 export const updateClassDetails = async (classId, formData) => {
   try {
     const response = await apiClient.put(`/${classId}/details`, formData, {
@@ -170,6 +170,29 @@ export const getScheduleRequestStatus = async (requestId) => {
   }
 };
 
+// Get pending wellness guide classes (Admin only)
+export const getPendingWellnessGuideClasses = async (params = {}) => {
+  try {
+    const response = await apiClient.get('/admin/pending', { params });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
+// Update wellness guide class approval status (Admin only)
+export const updateWellnessGuideClassApproval = async (classId, isApproved, rejectionReason = '') => {
+  try {
+    const response = await apiClient.put(`/${classId}/approval`, { 
+      isApproved,
+      rejectionReason: isApproved ? '' : rejectionReason
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
 export default {
   getMyClasses,
   getMyAddresses,
@@ -182,4 +205,6 @@ export default {
   removeTimeSlot,
   getScheduleExtensionInfo,
   getScheduleRequestStatus,
+  getPendingWellnessGuideClasses,
+  updateWellnessGuideClassApproval,
 };
