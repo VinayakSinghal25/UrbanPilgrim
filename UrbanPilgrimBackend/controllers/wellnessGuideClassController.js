@@ -2130,6 +2130,234 @@ const addRecurringTimeSlots = async (req, res) => {
   }
 };
 
+// @desc    Update wellness guide class details (non-schedule changes) - NEW
+// @route   PUT /api/wellness-guide-classes/:id/details
+// @access  Private (Wellness Guide - own classes only)
+const updateClassDetails = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.userId;
+    
+    // Check if user is an approved wellness guide
+    const wellnessGuide = await WellnessGuide.findOne({ 
+      user: userId, 
+      isApproved: true, 
+      isActive: true 
+    });
+    
+    if (!wellnessGuide) {
+      return res.status(403).json({ 
+        message: 'You must be an approved wellness guide to update classes' 
+      });
+    }
+
+    // Find the class and verify ownership
+    const existingClass = await WellnessGuideClass.findOne({
+      _id: id,
+      wellnessGuide: wellnessGuide._id
+    });
+
+    if (!existingClass) {
+      return res.status(404).json({ 
+        message: 'Class not found or you do not have permission to update it' 
+      });
+    }
+
+    // Allow updates for draft, rejected, and pending_approval classes
+    if (!['draft', 'rejected', 'pending_approval'].includes(existingClass.status)) {
+      return res.status(400).json({ 
+        message: 'Only draft, rejected, or pending approval classes can be updated' 
+      });
+    }
+
+    const {
+      title,
+      description,
+      guideCertifications,
+      skillsToLearn,
+      aboutSections,
+      specialty,
+      timezone,
+      tags,
+      difficulty,
+      // Mode pricing and capacity (but not schedule config)
+      onlineMaxCapacity,
+      onlinePrice,
+      offlineMaxCapacity,
+      offlinePrice,
+      // Address handling for offline mode
+      selectedAddress,
+      newAddress,
+      isNewAddress,
+      offlineLocation,
+      removePhotos // Array of photo URLs to remove
+    } = req.body;
+
+    // Parse JSON strings (since we're using FormData)
+    const parsedGuideCertifications = typeof guideCertifications === 'string' ? JSON.parse(guideCertifications) : guideCertifications;
+    const parsedSkillsToLearn = typeof skillsToLearn === 'string' ? JSON.parse(skillsToLearn) : skillsToLearn;
+    const parsedAboutSections = typeof aboutSections === 'string' ? JSON.parse(aboutSections) : aboutSections;
+    const parsedTags = typeof tags === 'string' ? JSON.parse(tags) : tags;
+    const parsedRemovePhotos = typeof removePhotos === 'string' ? JSON.parse(removePhotos) : removePhotos;
+
+    // Prepare update data - preserve existing modes structure but allow pricing updates
+    const updateData = {
+      title: title || existingClass.title,
+      description: description || existingClass.description,
+      guideCertifications: parsedGuideCertifications || existingClass.guideCertifications,
+      skillsToLearn: parsedSkillsToLearn || existingClass.skillsToLearn,
+      aboutSections: parsedAboutSections || existingClass.aboutSections,
+      specialty: specialty || existingClass.specialty,
+      timezone: timezone || existingClass.timezone,
+      tags: parsedTags || existingClass.tags,
+      difficulty: difficulty || existingClass.difficulty,
+      // Preserve existing modes but allow pricing/capacity updates
+      modes: {
+        online: {
+          enabled: existingClass.modes.online.enabled,
+          maxCapacity: onlineMaxCapacity ? parseInt(onlineMaxCapacity) : existingClass.modes.online.maxCapacity,
+          price: onlinePrice ? parseInt(onlinePrice) : existingClass.modes.online.price
+        },
+        offline: {
+          enabled: existingClass.modes.offline.enabled,
+          maxCapacity: offlineMaxCapacity ? parseInt(offlineMaxCapacity) : existingClass.modes.offline.maxCapacity,
+          price: offlinePrice ? parseInt(offlinePrice) : existingClass.modes.offline.price,
+          // Preserve existing address or update if provided
+          address: existingClass.modes.offline.address,
+          location: offlineLocation || existingClass.modes.offline.location
+        }
+      },
+      // Preserve existing schedule configuration - DO NOT UPDATE
+      scheduleConfig: existingClass.scheduleConfig
+    };
+
+    // Handle offline address update if provided
+    if (existingClass.modes.offline.enabled && (selectedAddress || newAddress)) {
+      let offlineAddress = null;
+      
+      if (isNewAddress === 'true') {
+        // Handle new address
+        const parsedNewAddress = typeof newAddress === 'string' ? JSON.parse(newAddress) : newAddress;
+        
+        if (parsedNewAddress && parsedNewAddress.street && parsedNewAddress.city && 
+            parsedNewAddress.state && parsedNewAddress.zipCode) {
+          offlineAddress = parsedNewAddress;
+          
+          // Add this address to user's addresses as well
+          const user = await User.findById(userId);
+          if (user) {
+            user.address = user.address || [];
+            user.address.push(offlineAddress);
+            await user.save();
+          }
+        }
+      } else {
+        // Handle existing address selection
+        const parsedSelectedAddress = typeof selectedAddress === 'string' ? JSON.parse(selectedAddress) : selectedAddress;
+        
+        if (parsedSelectedAddress && parsedSelectedAddress.street && parsedSelectedAddress.city && 
+            parsedSelectedAddress.state && (parsedSelectedAddress.zipCode || parsedSelectedAddress.pincode)) {
+          offlineAddress = parsedSelectedAddress;
+        }
+      }
+      
+      if (offlineAddress) {
+        updateData.modes.offline.address = offlineAddress;
+      }
+    }
+
+    // Handle photo updates
+    let updatedPhotos = [...existingClass.photos];
+
+    // Remove photos if specified
+    if (parsedRemovePhotos && Array.isArray(parsedRemovePhotos)) {
+      updatedPhotos = updatedPhotos.filter(photo => !parsedRemovePhotos.includes(photo));
+      
+      // Delete removed photos from Cloudinary
+      for (const photoUrl of parsedRemovePhotos) {
+        try {
+          const publicId = photoUrl.split('/').pop().split('.')[0];
+          await cloudinary.uploader.destroy(`wellness-guide-classes/${publicId}`);
+        } catch (deleteError) {
+          console.error('Error deleting photo from Cloudinary:', deleteError);
+        }
+      }
+    }
+
+    // Upload new photos to Cloudinary
+    if (req.files && req.files.length > 0) {
+      for (const file of req.files) {
+        try {
+          const result = await cloudinary.uploader.upload(file.path, {
+            folder: 'wellness-guide-classes',
+            transformation: [
+              { width: 800, height: 600, crop: 'fill', quality: 'auto' }
+            ]
+          });
+          updatedPhotos.push(result.secure_url);
+          
+          // Delete local file
+          fs.unlinkSync(file.path);
+        } catch (uploadError) {
+          console.error('Error uploading photo:', uploadError);
+        }
+      }
+    }
+
+    updateData.photos = updatedPhotos;
+
+    // Determine if we should reset status to draft
+    // Reset to draft only if making significant changes that require re-approval
+    const significantChanges = (
+      title !== existingClass.title ||
+      description !== existingClass.description ||
+      specialty !== existingClass.specialty ||
+      (onlinePrice && parseInt(onlinePrice) !== existingClass.modes.online.price) ||
+      (offlinePrice && parseInt(offlinePrice) !== existingClass.modes.offline.price) ||
+      (onlineMaxCapacity && parseInt(onlineMaxCapacity) !== existingClass.modes.online.maxCapacity) ||
+      (offlineMaxCapacity && parseInt(offlineMaxCapacity) !== existingClass.modes.offline.maxCapacity)
+    );
+
+    // Only reset to draft if making significant changes AND currently pending approval
+    if (significantChanges && existingClass.status === 'pending_approval') {
+      updateData.status = 'draft';
+      updateData.approvedAt = null;
+      updateData.approvedBy = null;
+      updateData.rejectedAt = null;
+      updateData.rejectedBy = null;
+      updateData.rejectionReason = null;
+    }
+
+    // Update the class
+    const updatedClass = await WellnessGuideClass.findByIdAndUpdate(
+      id,
+      updateData,
+      { new: true, runValidators: true }
+    );
+
+    // Note: We DO NOT delete or regenerate time slots - they are preserved
+
+    await updatedClass.populate([
+      { path: 'wellnessGuide', select: 'user email', populate: { path: 'user', select: 'firstName lastName' } },
+      { path: 'specialty', select: 'name description' }
+    ]);
+    
+    res.json({
+      message: 'Class details updated successfully. Time slots and schedule remain unchanged.',
+      wellnessGuideClass: updatedClass,
+      statusChanged: significantChanges && existingClass.status === 'pending_approval',
+      preservedTimeSlots: true
+    });
+    
+  } catch (error) {
+    console.error('Error updating wellness guide class details:', error);
+    res.status(500).json({ 
+      message: 'Error updating class details',
+      error: error.message 
+    });
+  }
+};
+
 module.exports = {
   createWellnessGuideClass,
   getMyAddresses,
@@ -2146,5 +2374,6 @@ module.exports = {
   addTimeSlots,        // New
   removeTimeSlot,
   getScheduleExtensionInfo,
-  addRecurringTimeSlots      // New
+  addRecurringTimeSlots,      // New
+  updateClassDetails
 };

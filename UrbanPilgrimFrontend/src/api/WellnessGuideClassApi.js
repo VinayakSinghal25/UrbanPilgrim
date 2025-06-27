@@ -96,6 +96,20 @@ export const updateWellnessGuideClass = async (classId, formData) => {
   }
 };
 
+// Update class details (non-schedule changes) - NEW
+export const updateClassDetails = async (classId, formData) => {
+  try {
+    const response = await apiClient.put(`/${classId}/details`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
 // Get class details
 export const getClassDetails = async (classId) => {
   try {
@@ -161,6 +175,7 @@ export default {
   getMyAddresses,
   createWellnessGuideClass,
   updateWellnessGuideClass,
+  updateClassDetails,
   getClassDetails,
   addTimeSlots,
   addRecurringTimeSlots,

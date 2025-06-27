@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { getWellnessGuideProfile } from '../api/wellnessGuideApi';
-import { getMyClasses, getClassDetails } from '../api/WellnessGuideClassApi';
+import { getWellnessGuideProfile, getAllSpecialties } from '../api/wellnessGuideApi';
+import { getMyClasses, getClassDetails, updateClassDetails, getMyAddresses } from '../api/WellnessGuideClassApi';
 
 const WellnessGuideDashboard = () => {
   const { user } = useSelector((state) => state.auth);
@@ -16,6 +16,16 @@ const WellnessGuideDashboard = () => {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedClassDetails, setSelectedClassDetails] = useState(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
+  
+  // Edit modal state
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editClassData, setEditClassData] = useState(null);
+  const [editLoading, setEditLoading] = useState(false);
+  const [editFormData, setEditFormData] = useState({});
+  const [specialties, setSpecialties] = useState([]);
+  const [addresses, setAddresses] = useState([]);
+  const [editPhotos, setEditPhotos] = useState([]);
+  const [photosToRemove, setPhotosToRemove] = useState([]);
 
   useEffect(() => {
     fetchDashboardData();
@@ -131,6 +141,232 @@ const WellnessGuideDashboard = () => {
     // Close modal only if clicking on the backdrop (not the modal content)
     if (e.target === e.currentTarget) {
       closeDetailsModal();
+    }
+  };
+
+  // Edit modal functions
+  const openEditModal = async (classData) => {
+    try {
+      setEditLoading(true);
+      setShowEditModal(true);
+      
+      // Fetch required data for edit form
+      const [specialtiesData, addressesData, detailsData] = await Promise.all([
+        getAllSpecialties(),
+        getMyAddresses(),
+        getClassDetails(classData._id)
+      ]);
+      
+      setSpecialties(specialtiesData);
+      setAddresses(addressesData.addresses || []);
+      setEditClassData(detailsData.classDetails);
+      
+      // Initialize form data with current values
+      const classDetails = detailsData.classDetails;
+      setEditFormData({
+        title: classDetails.title || '',
+        description: classDetails.description || '',
+        specialty: classDetails.specialty?._id || '',
+        difficulty: classDetails.difficulty || 'Beginner',
+        timezone: classDetails.timezone || 'Asia/Kolkata',
+        tags: classDetails.tags || [],
+        tagsInput: '',
+        guideCertifications: classDetails.guideCertifications?.length > 0 ? classDetails.guideCertifications : [''],
+        skillsToLearn: classDetails.skillsToLearn?.length > 0 ? classDetails.skillsToLearn : [''],
+        aboutSections: classDetails.aboutSections?.length > 0 ? classDetails.aboutSections : [{ header: '', paragraph: '' }],
+        onlineMaxCapacity: classDetails.modes?.online?.maxCapacity || '',
+        onlinePrice: classDetails.modes?.online?.price || '',
+        offlineMaxCapacity: classDetails.modes?.offline?.maxCapacity || '',
+        offlinePrice: classDetails.modes?.offline?.price || '',
+        offlineLocation: classDetails.modes?.offline?.location || '',
+        selectedAddress: classDetails.modes?.offline?.address || null,
+        newAddress: {
+          street: '',
+          city: '',
+          state: '',
+          zipCode: '',
+          country: 'India',
+          landmark: '',
+          addressType: 'studio'
+        },
+        isNewAddress: false
+      });
+      
+      setEditPhotos([]);
+      setPhotosToRemove([]);
+      
+    } catch (err) {
+      console.error('Error opening edit modal:', err);
+      setError('Failed to load edit data');
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  const closeEditModal = () => {
+    setShowEditModal(false);
+    setEditClassData(null);
+    setEditFormData({});
+    setEditPhotos([]);
+    setPhotosToRemove([]);
+    setSpecialties([]);
+    setAddresses([]);
+  };
+
+  // Edit form handlers
+  const handleEditInputChange = (e) => {
+    const { name, value } = e.target;
+    setEditFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleEditArrayChange = (field, index, value) => {
+    setEditFormData(prev => ({
+      ...prev,
+      [field]: prev[field].map((item, i) => i === index ? value : item)
+    }));
+  };
+
+  const addEditArrayItem = (field, defaultValue = '') => {
+    setEditFormData(prev => ({
+      ...prev,
+      [field]: [...(prev[field] || []), defaultValue]
+    }));
+  };
+
+  const removeEditArrayItem = (field, index) => {
+    setEditFormData(prev => ({
+      ...prev,
+      [field]: prev[field].filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleEditAboutSectionChange = (index, field, value) => {
+    setEditFormData(prev => ({
+      ...prev,
+      aboutSections: prev.aboutSections.map((section, i) => 
+        i === index ? { ...section, [field]: value } : section
+      )
+    }));
+  };
+
+  const handleEditTagsChange = (e) => {
+    const value = e.target.value;
+    setEditFormData(prev => ({ ...prev, tagsInput: value }));
+    
+    if (value.includes(',')) {
+      const tagsArray = value.split(',').map(tag => tag.trim()).filter(tag => tag);
+      setEditFormData(prev => ({ 
+        ...prev, 
+        tags: [...new Set([...(prev.tags || []), ...tagsArray])],
+        tagsInput: '' 
+      }));
+    }
+  };
+
+  const removeEditTag = (tagIndex) => {
+    setEditFormData(prev => ({
+      ...prev,
+      tags: prev.tags.filter((_, i) => i !== tagIndex)
+    }));
+  };
+
+  const handleEditPhotoChange = (e) => {
+    const files = Array.from(e.target.files);
+    const currentPhotoCount = (editClassData?.photos?.length || 0) - photosToRemove.length + editPhotos.length;
+    
+    if (currentPhotoCount + files.length > 5) {
+      setError('Maximum 5 photos allowed');
+      return;
+    }
+    setEditPhotos(prev => [...prev, ...files]);
+  };
+
+  const removeEditPhoto = (index) => {
+    setEditPhotos(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const removeExistingPhoto = (photoUrl) => {
+    setPhotosToRemove(prev => [...prev, photoUrl]);
+  };
+
+  const restoreExistingPhoto = (photoUrl) => {
+    setPhotosToRemove(prev => prev.filter(url => url !== photoUrl));
+  };
+
+  const handleEditAddressChange = (field, value) => {
+    setEditFormData(prev => ({
+      ...prev,
+      newAddress: { ...prev.newAddress, [field]: value }
+    }));
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    
+    try {
+      setEditLoading(true);
+      
+      const submitData = new FormData();
+      
+      // Basic fields
+      submitData.append('title', editFormData.title);
+      submitData.append('description', editFormData.description);
+      submitData.append('specialty', editFormData.specialty);
+      submitData.append('difficulty', editFormData.difficulty);
+      submitData.append('timezone', editFormData.timezone);
+      
+      // JSON fields
+      submitData.append('guideCertifications', JSON.stringify(editFormData.guideCertifications?.filter(cert => cert.trim()) || []));
+      submitData.append('skillsToLearn', JSON.stringify(editFormData.skillsToLearn?.filter(skill => skill.trim()) || []));
+      submitData.append('aboutSections', JSON.stringify(editFormData.aboutSections || []));
+      submitData.append('tags', JSON.stringify(editFormData.tags || []));
+      
+      // Mode pricing (preserve enabled status)
+      if (editClassData?.modes?.online?.enabled) {
+        submitData.append('onlineMaxCapacity', editFormData.onlineMaxCapacity);
+        submitData.append('onlinePrice', editFormData.onlinePrice);
+      }
+      
+      if (editClassData?.modes?.offline?.enabled) {
+        submitData.append('offlineMaxCapacity', editFormData.offlineMaxCapacity);
+        submitData.append('offlinePrice', editFormData.offlinePrice);
+        submitData.append('offlineLocation', editFormData.offlineLocation);
+        
+        // Address handling
+        submitData.append('isNewAddress', editFormData.isNewAddress.toString());
+        if (editFormData.isNewAddress) {
+          submitData.append('newAddress', JSON.stringify(editFormData.newAddress));
+        } else if (editFormData.selectedAddress) {
+          submitData.append('selectedAddress', JSON.stringify(editFormData.selectedAddress));
+        }
+      }
+      
+      // Photos
+      editPhotos.forEach((photo) => {
+        submitData.append('photos', photo);
+      });
+      
+      if (photosToRemove.length > 0) {
+        submitData.append('removePhotos', JSON.stringify(photosToRemove));
+      }
+
+      const response = await updateClassDetails(editClassData._id, submitData);
+      
+      // Update the class in the dashboard
+      setMyClasses(prev => prev.map(cls => 
+        cls._id === editClassData._id ? response.wellnessGuideClass : cls
+      ));
+      
+      closeEditModal();
+      setError('');
+      
+      // Show success message
+      alert('Class details updated successfully!');
+      
+    } catch (err) {
+      setError(err.message || 'Failed to update class details');
+    } finally {
+      setEditLoading(false);
     }
   };
 
@@ -376,12 +612,22 @@ const WellnessGuideDashboard = () => {
                     })()}
                   </div>
                   
-                  <button
-                    onClick={() => openDetailsModal(currentClass)}
-                    className="ml-4 bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 font-medium"
-                  >
-                    View Details
-                  </button>
+                  <div className="ml-4 flex flex-col sm:flex-row gap-2">
+                    <button
+                      onClick={() => openDetailsModal(currentClass)}
+                      className="bg-gray-100 text-gray-700 px-3 py-2 rounded-md hover:bg-gray-200 font-medium text-sm whitespace-nowrap"
+                    >
+                      View Details
+                    </button>
+                    {['draft', 'rejected', 'pending_approval'].includes(currentClass.status) && (
+                      <button
+                        onClick={() => openEditModal(currentClass)}
+                        className="bg-green-100 text-green-700 px-3 py-2 rounded-md hover:bg-green-200 font-medium text-sm whitespace-nowrap"
+                      >
+                        Edit Details
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -763,6 +1009,332 @@ const WellnessGuideDashboard = () => {
                  Close
                </button>
              </div>
+           </div>
+         </div>
+       )}
+
+       {/* Edit Modal */}
+       {showEditModal && (
+         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50" onClick={(e) => e.target === e.currentTarget && closeEditModal()}>
+           <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+             {/* Modal Header */}
+             <div className="flex items-center justify-between p-6 border-b border-gray-200">
+               <h2 className="text-2xl font-bold text-gray-900">Edit Class Details</h2>
+               <button
+                 onClick={closeEditModal}
+                 className="text-gray-400 hover:text-gray-600 transition-colors"
+                 aria-label="Close modal"
+               >
+                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                 </svg>
+               </button>
+             </div>
+
+             {/* Modal Content */}
+             <form onSubmit={handleEditSubmit} className="p-6">
+               {editLoading ? (
+                 <div className="flex items-center justify-center py-12">
+                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                   <p className="ml-4 text-gray-600">Loading edit form...</p>
+                 </div>
+               ) : editClassData ? (
+                 <div className="space-y-6">
+                   {/* Basic Information */}
+                   <div>
+                     <h3 className="text-lg font-medium text-gray-900 mb-4">Basic Information</h3>
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                       <div>
+                         <label className="block text-sm font-medium text-gray-700 mb-2">Title *</label>
+                         <input
+                           type="text"
+                           name="title"
+                           value={editFormData.title || ''}
+                           onChange={handleEditInputChange}
+                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           required
+                         />
+                       </div>
+                       
+                       <div>
+                         <label className="block text-sm font-medium text-gray-700 mb-2">Specialty *</label>
+                         <select
+                           name="specialty"
+                           value={editFormData.specialty || ''}
+                           onChange={handleEditInputChange}
+                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           required
+                         >
+                           <option value="">Select specialty</option>
+                           {specialties.map((specialty) => (
+                             <option key={specialty._id} value={specialty._id}>
+                               {specialty.name}
+                             </option>
+                           ))}
+                         </select>
+                       </div>
+                       
+                       <div>
+                         <label className="block text-sm font-medium text-gray-700 mb-2">Difficulty</label>
+                         <select
+                           name="difficulty"
+                           value={editFormData.difficulty || 'Beginner'}
+                           onChange={handleEditInputChange}
+                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                         >
+                           <option value="Beginner">Beginner</option>
+                           <option value="Intermediate">Intermediate</option>
+                           <option value="Advanced">Advanced</option>
+                         </select>
+                       </div>
+                       
+                       <div>
+                         <label className="block text-sm font-medium text-gray-700 mb-2">Timezone</label>
+                         <select
+                           name="timezone"
+                           value={editFormData.timezone || 'Asia/Kolkata'}
+                           onChange={handleEditInputChange}
+                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                         >
+                           <option value="Asia/Kolkata">Asia/Kolkata (IST)</option>
+                           <option value="Asia/Dubai">Asia/Dubai (GST)</option>
+                           <option value="Asia/Singapore">Asia/Singapore (SST)</option>
+                           <option value="Europe/London">Europe/London (GMT)</option>
+                           <option value="America/New_York">America/New_York (EST)</option>
+                         </select>
+                       </div>
+                     </div>
+                     
+                     <div className="mt-4">
+                       <label className="block text-sm font-medium text-gray-700 mb-2">Description *</label>
+                       <textarea
+                         name="description"
+                         value={editFormData.description || ''}
+                         onChange={handleEditInputChange}
+                         rows="4"
+                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                         required
+                       />
+                     </div>
+                   </div>
+
+                   {/* Pricing & Capacity */}
+                   <div>
+                     <h3 className="text-lg font-medium text-gray-900 mb-4">Pricing & Capacity</h3>
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                       {editClassData.modes?.online?.enabled && (
+                         <div className="border border-blue-200 rounded-lg p-4">
+                           <h4 className="text-md font-medium text-blue-900 mb-3">Online Mode</h4>
+                           <div className="space-y-3">
+                             <div>
+                               <label className="block text-sm font-medium text-gray-700 mb-1">Max Capacity</label>
+                               <input
+                                 type="number"
+                                 name="onlineMaxCapacity"
+                                 value={editFormData.onlineMaxCapacity || ''}
+                                 onChange={handleEditInputChange}
+                                 min="1"
+                                 max="100"
+                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                               />
+                             </div>
+                             <div>
+                               <label className="block text-sm font-medium text-gray-700 mb-1">Price per Session (₹)</label>
+                               <input
+                                 type="number"
+                                 name="onlinePrice"
+                                 value={editFormData.onlinePrice || ''}
+                                 onChange={handleEditInputChange}
+                                 min="0"
+                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                               />
+                             </div>
+                           </div>
+                         </div>
+                       )}
+                       
+                       {editClassData.modes?.offline?.enabled && (
+                         <div className="border border-green-200 rounded-lg p-4">
+                           <h4 className="text-md font-medium text-green-900 mb-3">Offline Mode</h4>
+                           <div className="space-y-3">
+                             <div>
+                               <label className="block text-sm font-medium text-gray-700 mb-1">Max Capacity</label>
+                               <input
+                                 type="number"
+                                 name="offlineMaxCapacity"
+                                 value={editFormData.offlineMaxCapacity || ''}
+                                 onChange={handleEditInputChange}
+                                 min="1"
+                                 max="100"
+                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                               />
+                             </div>
+                             <div>
+                               <label className="block text-sm font-medium text-gray-700 mb-1">Price per Session (₹)</label>
+                               <input
+                                 type="number"
+                                 name="offlinePrice"
+                                 value={editFormData.offlinePrice || ''}
+                                 onChange={handleEditInputChange}
+                                 min="0"
+                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                               />
+                             </div>
+                             <div>
+                               <label className="block text-sm font-medium text-gray-700 mb-1">Location (City)</label>
+                               <input
+                                 type="text"
+                                 name="offlineLocation"
+                                 value={editFormData.offlineLocation || ''}
+                                 onChange={handleEditInputChange}
+                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                 placeholder="e.g., Mumbai, Delhi"
+                               />
+                             </div>
+                           </div>
+                         </div>
+                       )}
+                     </div>
+                   </div>
+
+                   {/* Photos */}
+                   <div>
+                     <h3 className="text-lg font-medium text-gray-900 mb-4">Class Photos</h3>
+                     
+                     {/* Existing Photos */}
+                     {editClassData.photos && editClassData.photos.length > 0 && (
+                       <div className="mb-4">
+                         <label className="block text-sm font-medium text-gray-700 mb-2">Current Photos</label>
+                         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                           {editClassData.photos.map((photo, index) => (
+                             <div key={index} className="relative group">
+                               <img
+                                 src={photo}
+                                 alt={`Class photo ${index + 1}`}
+                                 className={`w-full h-24 object-cover rounded-lg border-2 ${
+                                   photosToRemove.includes(photo) ? 'border-red-300 opacity-50' : 'border-gray-200'
+                                 }`}
+                               />
+                               <button
+                                 type="button"
+                                 onClick={() => photosToRemove.includes(photo) ? restoreExistingPhoto(photo) : removeExistingPhoto(photo)}
+                                 className={`absolute top-1 right-1 rounded-full p-1 text-white text-xs ${
+                                   photosToRemove.includes(photo) ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'
+                                 }`}
+                               >
+                                 {photosToRemove.includes(photo) ? '↻' : '×'}
+                               </button>
+                             </div>
+                           ))}
+                         </div>
+                       </div>
+                     )}
+                     
+                     {/* New Photos */}
+                     <div>
+                       <label className="block text-sm font-medium text-gray-700 mb-2">Add New Photos</label>
+                       <input
+                         type="file"
+                         multiple
+                         accept="image/*"
+                         onChange={handleEditPhotoChange}
+                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       />
+                       {editPhotos.length > 0 && (
+                         <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                           {editPhotos.map((photo, index) => (
+                             <div key={index} className="relative group">
+                               <img
+                                 src={URL.createObjectURL(photo)}
+                                 alt={`New photo ${index + 1}`}
+                                 className="w-full h-24 object-cover rounded-lg border border-gray-200"
+                               />
+                               <button
+                                 type="button"
+                                 onClick={() => removeEditPhoto(index)}
+                                 className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1 text-xs hover:bg-red-700"
+                               >
+                                 ×
+                               </button>
+                             </div>
+                           ))}
+                         </div>
+                       )}
+                     </div>
+                   </div>
+
+                   {/* Tags */}
+                   <div>
+                     <h3 className="text-lg font-medium text-gray-900 mb-4">Tags</h3>
+                     <input
+                       type="text"
+                       value={editFormData.tagsInput || ''}
+                       onChange={handleEditTagsChange}
+                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                       placeholder="Type tags separated by commas"
+                     />
+                     {editFormData.tags && editFormData.tags.length > 0 && (
+                       <div className="mt-2 flex flex-wrap gap-2">
+                         {editFormData.tags.map((tag, index) => (
+                           <span key={index} className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                             {tag}
+                             <button
+                               type="button"
+                               onClick={() => removeEditTag(index)}
+                               className="ml-2 text-blue-600 hover:text-blue-800"
+                             >
+                               ×
+                             </button>
+                           </span>
+                         ))}
+                       </div>
+                     )}
+                   </div>
+
+                   {/* Note about schedule */}
+                   <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                     <div className="flex">
+                       <svg className="w-5 h-5 text-yellow-400 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                       </svg>
+                       <div>
+                         <h4 className="text-sm font-medium text-yellow-800">Schedule Configuration Preserved</h4>
+                         <p className="text-sm text-yellow-700 mt-1">
+                           This form updates class details only. Your existing time slots and schedule configuration will remain unchanged. 
+                           To modify schedules, use the separate schedule management tools.
+                         </p>
+                       </div>
+                     </div>
+                   </div>
+                 </div>
+               ) : (
+                 <div className="text-center py-12">
+                   <p className="text-gray-500">Failed to load edit form</p>
+                 </div>
+               )}
+
+               {/* Modal Footer */}
+               <div className="border-t border-gray-200 mt-6 pt-6 flex justify-end space-x-3">
+                 <button
+                   type="button"
+                   onClick={closeEditModal}
+                   className="bg-gray-600 text-white px-6 py-2 rounded-md hover:bg-gray-700 font-medium transition-colors"
+                 >
+                   Cancel
+                 </button>
+                 <button
+                   type="submit"
+                   disabled={editLoading}
+                   className={`px-6 py-2 rounded-md font-medium transition-colors ${
+                     editLoading
+                       ? 'bg-gray-400 text-white cursor-not-allowed'
+                       : 'bg-blue-600 text-white hover:bg-blue-700'
+                   }`}
+                 >
+                   {editLoading ? 'Updating...' : 'Update Class'}
+                 </button>
+               </div>
+             </form>
            </div>
          </div>
        )}
