@@ -10,6 +10,8 @@ const WellnessGuideClassPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedMode, setSelectedMode] = useState('online');
+  const [selectedSlots, setSelectedSlots] = useState([]);
+  const [numberOfPeople, setNumberOfPeople] = useState(1);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   useEffect(() => {
@@ -82,6 +84,47 @@ const WellnessGuideClassPage = () => {
     setCurrentImageIndex(index);
   };
 
+  const handleSlotSelection = (slots) => {
+    setSelectedSlots(slots);
+  };
+
+  const handlePeopleChange = (count) => {
+    setNumberOfPeople(count);
+  };
+
+  const calculateBookingTotal = () => {
+    const basePrice = getCurrentPrice();
+    const totalSlots = selectedSlots.length;
+    const subtotal = basePrice * totalSlots * numberOfPeople;
+    
+    const discountConfig = selectedMode === 'online' 
+      ? classDetails?.adminSettings?.onlineDiscount 
+      : classDetails?.adminSettings?.offlineDiscount;
+
+    let discount = null;
+    let discountAmount = 0;
+    
+    if (discountConfig?.isEnabled && totalSlots > 0) {
+      const applicableTier = discountConfig.tiers
+        .filter(tier => totalSlots >= tier.minClasses)
+        .sort((a, b) => b.discountPercentage - a.discountPercentage)[0];
+      
+      if (applicableTier) {
+        discountAmount = (subtotal * applicableTier.discountPercentage) / 100;
+        discount = {
+          discountPercentage: applicableTier.discountPercentage,
+          discountAmount
+        };
+      }
+    }
+
+    return {
+      subtotal,
+      discount,
+      total: subtotal - discountAmount
+    };
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -106,6 +149,8 @@ const WellnessGuideClassPage = () => {
       </div>
     );
   }
+
+  const bookingTotal = calculateBookingTotal();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -357,112 +402,6 @@ const WellnessGuideClassPage = () => {
                         </span>
                       </div>
                     </div>
-                  </div>
-                )}
-
-                {/* Location & Address Info for Offline Mode (Multiple Modes) */}
-                {classDetails.modes.online?.enabled && classDetails.modes.offline?.enabled && selectedMode === 'offline' && (
-                  <div className="mb-4 sm:mb-6 space-y-3">
-                    {/* Location */}
-                    {classDetails?.modes?.offline?.location && (
-                      <div className="p-3 sm:p-4 bg-blue-50 border border-blue-200 rounded-xl">
-                        <div className="flex items-center space-x-2 mb-1">
-                          <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                          </svg>
-                          <h4 className="text-sm font-semibold text-blue-900">Location</h4>
-                        </div>
-                        <p className="text-sm text-blue-700 font-medium">
-                          {classDetails.modes.offline.location}
-                        </p>
-                      </div>
-                    )}
-                    
-                    {/* Address */}
-                    {classDetails?.modes?.offline?.address && (
-                      <div className="p-3 sm:p-4 bg-gray-50 border border-gray-200 rounded-xl">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                          </svg>
-                          <h4 className="text-sm font-semibold text-gray-900">Address</h4>
-                        </div>
-                        <div className="text-sm text-gray-700 space-y-1">
-                          {classDetails.modes.offline.address.street && (
-                            <p>{classDetails.modes.offline.address.street}</p>
-                          )}
-                          <p>
-                            {[
-                              classDetails.modes.offline.address.city,
-                              classDetails.modes.offline.address.state,
-                              classDetails.modes.offline.address.zipCode || classDetails.modes.offline.address.pincode
-                            ].filter(Boolean).join(', ')}
-                          </p>
-                          {classDetails.modes.offline.address.country && (
-                            <p className="text-xs text-gray-500">{classDetails.modes.offline.address.country}</p>
-                          )}
-                          {classDetails.modes.offline.address.landmark && (
-                            <p className="text-xs text-gray-500">
-                              <span className="font-medium">Landmark:</span> {classDetails.modes.offline.address.landmark}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Location & Address Info for Single Offline Mode */}
-                {!classDetails.modes.online?.enabled && classDetails.modes.offline?.enabled && (
-                  <div className="mb-4 sm:mb-6 space-y-3">
-                    {/* Location */}
-                    {classDetails?.modes?.offline?.location && (
-                      <div className="p-3 sm:p-4 bg-blue-50 border border-blue-200 rounded-xl">
-                        <div className="flex items-center space-x-2 mb-1">
-                          <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                          </svg>
-                          <h4 className="text-sm font-semibold text-blue-900">Location</h4>
-                        </div>
-                        <p className="text-sm text-blue-700 font-medium">
-                          {classDetails.modes.offline.location}
-                        </p>
-                      </div>
-                    )}
-                    
-                    {/* Address */}
-                    {classDetails?.modes?.offline?.address && (
-                      <div className="p-3 sm:p-4 bg-gray-50 border border-gray-200 rounded-xl">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                          </svg>
-                          <h4 className="text-sm font-semibold text-gray-900">Address</h4>
-                        </div>
-                        <div className="text-sm text-gray-700 space-y-1">
-                          {classDetails.modes.offline.address.street && (
-                            <p>{classDetails.modes.offline.address.street}</p>
-                          )}
-                          <p>
-                            {[
-                              classDetails.modes.offline.address.city,
-                              classDetails.modes.offline.address.state,
-                              classDetails.modes.offline.address.zipCode || classDetails.modes.offline.address.pincode
-                            ].filter(Boolean).join(', ')}
-                          </p>
-                          {classDetails.modes.offline.address.country && (
-                            <p className="text-xs text-gray-500">{classDetails.modes.offline.address.country}</p>
-                          )}
-                          {classDetails.modes.offline.address.landmark && (
-                            <p className="text-xs text-gray-500">
-                              <span className="font-medium">Landmark:</span> {classDetails.modes.offline.address.landmark}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    )}
                   </div>
                 )}
 
