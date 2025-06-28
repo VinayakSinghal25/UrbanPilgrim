@@ -19,6 +19,7 @@ import JoinGuidesPage from './pages/JoinGuidesPage';
 import WellnessGuideFormPage from './pages/WellnessGuideFormPage';
 import WellnessGuideDashboard from './pages/WellnessGuideDashboard';
 import CreateWellnessGuideClass from './pages/CreateWellnessGuideClass';
+import WellnessGuideClassPage from './components/WellnessGuideClasses/WellnessGuideClassPage';
 import EmailVerificationPage from './pages/EmailVerificationPage';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
@@ -48,7 +49,7 @@ function App() {
             <Route path="/pilgrim-experiences/:id" element={<PilgrimExperienceDetail />} />
             <Route path="/experience/:id" element={<ExperienceDetail />} />
             <Route path="/wellness-guides" element={<WellnessGuideClasses />} />
-            <Route path="/wellness-guide-classes/:id" element={<div>Wellness Guide Class Details - Coming Soon</div>} />
+                          <Route path="/wellness-guide-classes/:id" element={<WellnessGuideClassPage />} />
             <Route path="/who-we-are" element={<WhoWeArePage />} />
             <Route path="/why-choose-us" element={<WhyChooseUsPage />} />
             <Route path="/contact" element={<ContactPage />} />

@@ -130,6 +130,20 @@ export const getClassDetails = async (classId) => {
   }
 };
 
+// Get class details with time slots filtered by mode
+export const getClassDetailsWithMode = async (classId, mode = null, timezone = 'Asia/Kolkata') => {
+  try {
+    const params = {};
+    if (mode) params.mode = mode;
+    if (timezone) params.timezone = timezone;
+    
+    const response = await apiClient.get(`/${classId}`, { params });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
 // Add single time slots
 export const addTimeSlots = async (classId, slotsData) => {
   try {
