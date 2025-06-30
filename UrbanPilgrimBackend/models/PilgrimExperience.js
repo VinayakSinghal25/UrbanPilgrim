@@ -44,7 +44,159 @@ const pilgrimExperienceSchema = new mongoose.Schema({
     type: [String],
     enum: ['Single', 'Couple'],
     default: ['Single']
+  },
+  
+  // 🆕 NEW: Optimized discount configuration (no defaults - 0 storage cost when unused)
+  discountRules: {
+    // Bulk session discounts
+    bulk: [{
+      minSessions: {
+        type: Number,
+        min: 1,
+        max: 20
+      },
+      percentage: {
+        type: Number,
+        min: 0,
+        max: 50 // Max 50% discount
+      },
+      description: {
+        type: String,
+        maxlength: 200
+      }
+    }],
+    
+    // Couple-specific discounts
+    couple: [{
+      minSessions: {
+        type: Number,
+        min: 1,
+        max: 10
+      },
+      percentage: {
+        type: Number,
+        min: 0,
+        max: 30
+      },
+      description: {
+        type: String,
+        maxlength: 200
+      }
+    }],
+    
+    // Early bird discount
+    earlyBird: {
+      enabled: Boolean,
+      daysBeforeExperience: {
+        type: Number,
+        min: 1,
+        max: 90
+      },
+      percentage: {
+        type: Number,
+        min: 0,
+        max: 25
+      },
+      description: {
+        type: String,
+        maxlength: 200
+      }
+    },
+    
+    // Seasonal discounts
+    seasonal: [{
+      season: {
+        type: String,
+        enum: ['summer', 'winter', 'monsoon', 'spring']
+      },
+      percentage: {
+        type: Number,
+        min: 0,
+        max: 30
+      },
+      validFrom: Date, // Start date for season
+      validTo: Date,   // End date for season
+      description: {
+        type: String,
+        maxlength: 200
+      }
+    }]
+  },
+  
+  // 🆕 NEW: Simple on/off discount (no defaults - only stored when enabled)
+  simpleDiscount: {
+    enabled: Boolean,        // No default - undefined if not set
+    percentage: Number,      // No default - undefined if not set
+    description: String,     // No default - undefined if not set
+    validFrom: Date,
+    validTo: Date
+  },
+  
+  // 🆕 NEW: Discount status tracking (no default - undefined if not set)
+  discountStatus: String,    // 'none', 'simple', 'advanced'
+  
+  // 🆕 NEW: Discount metadata (only stored when discount is used)
+  discountMetadata: {
+    lastUpdated: Date,
+    updatedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    totalDiscountGiven: Number,    // No default - undefined if not set
+    discountUsageCount: Number     // No default - undefined if not set
   }
 });
+
+// Indexes for performance
+pilgrimExperienceSchema.index({ createdBy: 1 });
+pilgrimExperienceSchema.index({ 'availableDates.from': 1, 'availableDates.to': 1 });
+pilgrimExperienceSchema.index({ location: 1 });
+pilgrimExperienceSchema.index({ discountStatus: 1 });
+pilgrimExperienceSchema.index({ 'simpleDiscount.enabled': 1 });
+
+// Methods
+pilgrimExperienceSchema.methods.hasActiveDiscount = function() {
+  if (this.simpleDiscount?.enabled) {
+    const now = new Date();
+    const validFrom = this.simpleDiscount.validFrom;
+    const validTo = this.simpleDiscount.validTo;
+    
+    const isValidPeriod = (!validFrom || now >= validFrom) &&
+                         (!validTo || now <= validTo);
+    
+    return isValidPeriod && this.simpleDiscount.percentage > 0;
+  }
+  
+  return this.discountStatus && this.discountStatus !== 'none';
+};
+
+pilgrimExperienceSchema.methods.getActiveDiscountSummary = function() {
+  if (this.simpleDiscount?.enabled && this.hasActiveDiscount()) {
+    return {
+      type: 'simple',
+      percentage: this.simpleDiscount.percentage,
+      description: this.simpleDiscount.description
+    };
+  }
+  
+  if (this.discountStatus === 'advanced' && this.discountRules) {
+    const activeRules = [];
+    
+    if (this.discountRules.bulk?.length > 0) {
+      activeRules.push(...this.discountRules.bulk);
+    }
+    
+    if (this.discountRules.couple?.length > 0) {
+      activeRules.push(...this.discountRules.couple);
+    }
+    
+    return {
+      type: 'advanced',
+      rules: activeRules
+    };
+  }
+  
+  return null;
+};
 
 module.exports = mongoose.model('PilgrimExperience', pilgrimExperienceSchema);
