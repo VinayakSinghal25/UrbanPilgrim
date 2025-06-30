@@ -49,16 +49,20 @@ const upload = multer({
   }
 });
 
-// Public routes
+// Public routes - SPECIFIC PATHS FIRST
 router.get('/', getAllApprovedClasses);
-router.get('/:id', getClassDetails);
 
 // Protected routes (require authentication) - SPECIFIC PATHS FIRST
 router.get('/my/classes', authMiddleware, authorize(ROLES.WELLNESS_GUIDE), getMyClasses);
 router.get('/my/addresses', authMiddleware, authorize(ROLES.WELLNESS_GUIDE), getMyAddresses);
 router.get('/schedule-status/:requestId', authMiddleware, authorize(ROLES.WELLNESS_GUIDE), getScheduleRequestStatus);
 
-// NEW ROUTE - Schedule extension info
+// Admin routes - SPECIFIC PATHS FIRST (moved here before parameterized routes)
+router.get('/admin/pending', authMiddleware, authorize(ROLES.ADMIN), getPendingClasses);
+router.get('/admin/all', authMiddleware, authorize(ROLES.ADMIN), getAllClassesForAdmin);
+
+// Parameterized routes - MUST come after all specific routes
+router.get('/:id', getClassDetails);
 router.get('/:id/schedule-extension-info', authMiddleware, authorize(ROLES.WELLNESS_GUIDE), getScheduleExtensionInfo);
 
 // Class management routes
@@ -73,9 +77,7 @@ router.post('/:classId/time-slots', authMiddleware, authorize(ROLES.WELLNESS_GUI
 router.post('/:classId/recurring-time-slots', authMiddleware, authorize(ROLES.WELLNESS_GUIDE), addRecurringTimeSlots);
 router.delete('/:classId/time-slots/:slotId', authMiddleware, authorize(ROLES.WELLNESS_GUIDE), removeTimeSlot);
 
-// Admin routes - SPECIFIC PATHS FIRST
-router.get('/admin/pending', authMiddleware, authorize(ROLES.ADMIN), getPendingClasses);
-router.get('/admin/all', authMiddleware, authorize(ROLES.ADMIN), getAllClassesForAdmin);
+// Admin parameterized routes  
 router.put('/:id/approval', authMiddleware, authorize(ROLES.ADMIN), updateClassApproval);
 router.patch('/:id/platform-margin', authMiddleware, authorize(ROLES.ADMIN), updatePlatformMargin);
 router.patch('/:id/discount-settings', authMiddleware, authorize(ROLES.ADMIN), updateDiscountSettings);

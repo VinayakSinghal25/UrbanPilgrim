@@ -61,10 +61,10 @@ router.get('/profile', protect, getUserProfile);
 router.put('/profile', protect, upload.array('profilePictures', 3), updateUserProfile);
 router.post('/verify-email', protect, verifyEmail);
 
-// Admin only routes
-router.get('/', protect, authorize(ROLES.ADMIN), getAllUsers);
-router.get('/:id', protect, authorize(ROLES.ADMIN), getUserById);
-router.put('/:id', protect, authorize(ROLES.ADMIN), updateUserById);
-router.delete('/:id', protect, authorize(ROLES.ADMIN), deleteUserById);
+// Admin only routes (fixed - use string instead of ROLES constant)
+router.get('/', protect, authorize('ADMIN'), getAllUsers);
+router.get('/:id', protect, authorize('ADMIN'), getUserById);
+router.put('/:id', protect, authorize('ADMIN'), updateUserById);
+router.delete('/:id', protect, authorize('ADMIN'), deleteUserById);
 
 module.exports = router;
