@@ -320,9 +320,11 @@ const bookingSchema = new mongoose.Schema({
     },
     phone: {
       type: String,
-      required: true,
+      required: false, // Made optional
       validate: {
         validator: function(v) {
+          // Allow empty or undefined; validate only if value present
+          if (!v) return true;
           return /^[+]?[\d\s-()]{10,15}$/.test(v);
         },
         message: 'Invalid phone format'

@@ -78,6 +78,18 @@ const BookingReview = () => {
       return;
     }
 
+    // Helper to dynamically load Razorpay script only once
+    const loadRazorpayScript = () => {
+      return new Promise((resolve) => {
+        if (window.Razorpay) return resolve(true);
+        const script = document.createElement('script');
+        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+        script.onload = () => resolve(true);
+        script.onerror = () => resolve(false);
+        document.body.appendChild(script);
+      });
+    };
+
     try {
       setIsBooking(true);
       
@@ -91,12 +103,54 @@ const BookingReview = () => {
 
       const response = await bookingApi.createBooking(bookingPayload);
       
-      if (response.success && response.data.paymentUrl) {
-        // Redirect to payment
-        window.location.href = response.data.paymentUrl;
-      } else {
-        throw new Error('Failed to create booking');
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to create booking');
       }
+
+      // Load Razorpay script
+      const scriptLoaded = await loadRazorpayScript();
+      if (!scriptLoaded) {
+        throw new Error('Razorpay SDK failed to load. Are you online?');
+      }
+
+      const { orderId, amount, bookingId } = response.data;
+
+      const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_NmETHEgStX3Xi7';
+
+      const options = {
+        key: razorpayKey,
+        order_id: orderId,
+        amount: amount * 100, // paise (optional when order_id is present)
+        currency: 'INR',
+        name: 'Urban Pilgrim',
+        description: `Pilgrim Booking ${bookingId}`,
+        notes: { bookingId },
+        prefill: {
+          name: `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || user?.name || '',
+          email: user?.email || '',
+          contact: user?.contactNumber || ''
+        },
+        theme: { color: '#F59E0B' },
+        handler: function (rzpResponse) {
+          // On successful payment
+          navigate(`/payment/status?razorpay_order_id=${rzpResponse.razorpay_order_id}&razorpay_payment_id=${rzpResponse.razorpay_payment_id}&razorpay_signature=${rzpResponse.razorpay_signature}`);
+        },
+        modal: {
+          ondismiss: function () {
+            // If user closes the payment window, navigate to timeout page so the user can retry
+            navigate('/payment/status');
+          }
+        }
+      };
+
+      const rzp = new window.Razorpay(options);
+
+      rzp.on('payment.failed', function (err) {
+        const { order_id, code, description } = err.error.metadata || {};
+        navigate(`/payment/status?razorpay_order_id=${order_id}&error_code=${code}&error_description=${encodeURIComponent(description)}`);
+      });
+
+      rzp.open();
     } catch (err) {
       setError(err.message || 'Failed to create booking');
       console.error('Error creating booking:', err);

@@ -122,7 +122,16 @@ class PilgrimBookingController {
   static async createBooking(req, res) {
     try {
       const { experienceId, occupancy, sessionCount, selectedDates, userConsent } = req.body;
-      const userId = req.user.id;
+
+      // JWT may store userId or id depending on generator
+      const userId = req.user.userId || req.user.id;
+
+      // Fetch fresh user document to get name / phone / email (avoids stale token data)
+      const userDoc = await require('../models/User').findById(userId).lean();
+
+      if (!userDoc) {
+        return res.status(400).json({ success: false, message: 'User not found' });
+      }
 
       // Validate user consent
       if (!userConsent) {
@@ -161,9 +170,11 @@ class PilgrimBookingController {
         selectedDates
       );
 
-      // Generate unique IDs
-      const bookingId = await PilgrimBookingController.generateBookingId();
-      const requestId = PilgrimBookingController.generateRequestId();
+      // Generate unique IDs quickly (timestamp + random) to avoid duplicate key collisions
+      const timestamp = Date.now();
+      const randomStr = Math.random().toString(36).substr(2, 5).toUpperCase();
+      const bookingId = `BOK_${timestamp}_${randomStr}`;
+      const requestId = `REQ_${timestamp}_${Math.random().toString(36).substr(2,6).toUpperCase()}`;
 
       // Create booking object
       const bookingData = {
@@ -183,11 +194,23 @@ class PilgrimBookingController {
         },
         pricing: pricingDetails,
         status: 'payment_pending',
-        consent: {
-          userConsent: true,
-          consentTimestamp: new Date(),
-          ipAddress: req.ip || req.connection.remoteAddress
+        // ===== REQUIRED PRIVACY & CUSTOMER INFO =====
+        privacy: {
+          dataProcessingConsent: true,
+          dataProcessingConsentAt: new Date(),
+          termsAccepted: true,
+          termsAcceptedAt: new Date(),
+          consentMethod: 'checkbox',
+          consentIpAddress: req.ip || req.connection.remoteAddress,
+          consentUserAgent: req.get('User-Agent')
+        },
+
+        customerInfo: {
+          name: `${userDoc.firstName} ${userDoc.lastName}`.trim(),
+          email: userDoc.email,
+          phone: userDoc.contactNumber || userDoc.phone || ''
         }
+        // ... existing code ...
       };
 
       // Save booking to database

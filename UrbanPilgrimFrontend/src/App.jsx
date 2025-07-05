@@ -10,6 +10,7 @@ import PilgrimExperiences from './components/PilgrimExperiences/PilgrimExperienc
 import PilgrimExperienceDetail from './components/PilgrimExperiences/PilgrimExperienceDetail';
 import ExperienceDetail from './components/User/PilgrimExperienceBooking/ExperienceDetail';
 import BookingReview from './components/User/PilgrimExperienceBooking/BookingReview';
+import PaymentStatus from './components/User/PilgrimExperienceBooking/PaymentStatus';
 import WellnessGuideClasses from './components/WellnessGuideClasses/WellnessGuideClasses';
 import WhoWeArePage from './pages/WhoWeArePage';
 import WhyChooseUsPage from './pages/WhyChooseUsPage';
@@ -68,6 +69,15 @@ function App() {
               element={
                 <ProtectedRoute>
                   <BookingReview />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/payment/status" 
+              element={
+                <ProtectedRoute>
+                  <PaymentStatus />
                 </ProtectedRoute>
               } 
             />

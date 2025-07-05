@@ -1,5 +1,6 @@
 // src/api/bookingApi.js
 import axios from 'axios';
+import { getTokenFromCookie } from '../utils/cookies';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
@@ -9,7 +10,12 @@ const api = axios.create({
 
 // Add auth token to requests
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
+  // Try to get token from localStorage first, then cookies
+  let token = localStorage.getItem('token');
+  if (!token) {
+    token = getTokenFromCookie();
+  }
+  
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -61,6 +67,25 @@ export const bookingApi = {
   getBookingDetails: async (bookingId) => {
     try {
       const response = await api.get(`/bookings/pilgrim/${bookingId}`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Payment callback endpoints
+  handlePaymentCallback: async (paymentData) => {
+    try {
+      const response = await api.post('/bookings/pilgrim/payment-callback', paymentData);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  handlePaymentFailure: async (failureData) => {
+    try {
+      const response = await api.post('/bookings/pilgrim/payment-failed', failureData);
       return response.data;
     } catch (error) {
       throw error.response?.data || error.message;
