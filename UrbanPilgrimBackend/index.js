@@ -1,11 +1,16 @@
 // index.js
 const express = require('express');
-const mongoose = require('mongoose');
 const cors = require('cors');
 const path = require('path');
 require('dotenv').config();
 
+// Import database connection
+const connectDB = require('./db');
+
 const app = express();
+
+// Connect to database
+connectDB();
 
 // Middleware
 app.use(cors());
@@ -14,12 +19,6 @@ app.use(express.urlencoded({ extended: true }));
 
 // Serve static files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
-// Database connection
-const mongoUri = process.env.MONGO_URI || 'mongodb://localhost:27017/urbanpilgrim';
-mongoose.connect(mongoUri)
-.then(() => console.log('MongoDB connected successfully'))
-.catch(err => console.log('MongoDB connection error:', err));
 
 // Routes
 app.use('/api/auth', require('./routes/userRoutes'));
