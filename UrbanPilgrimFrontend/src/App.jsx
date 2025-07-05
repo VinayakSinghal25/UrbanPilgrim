@@ -9,6 +9,7 @@ import Banner from './components/Banner';
 import PilgrimExperiences from './components/PilgrimExperiences/PilgrimExperiences';
 import PilgrimExperienceDetail from './components/PilgrimExperiences/PilgrimExperienceDetail';
 import ExperienceDetail from './components/User/PilgrimExperienceBooking/ExperienceDetail';
+import BookingReview from './components/User/PilgrimExperienceBooking/BookingReview';
 import WellnessGuideClasses from './components/WellnessGuideClasses/WellnessGuideClasses';
 import WhoWeArePage from './pages/WhoWeArePage';
 import WhyChooseUsPage from './pages/WhyChooseUsPage';
@@ -62,6 +63,15 @@ function App() {
             <Route path="/verify-email" element={<EmailVerificationPage />} />
             
             {/* Protected routes */}
+            <Route 
+              path="/booking/review" 
+              element={
+                <ProtectedRoute>
+                  <BookingReview />
+                </ProtectedRoute>
+              } 
+            />
+            
             <Route 
               path="/profile" 
               element={

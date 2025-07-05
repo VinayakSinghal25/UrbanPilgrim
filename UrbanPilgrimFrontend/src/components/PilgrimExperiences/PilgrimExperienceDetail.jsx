@@ -1,6 +1,7 @@
 // src/components/PilgrimExperiences/PilgrimExperienceDetail.jsx
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import { 
   ArrowLeftIcon, 
   ChevronLeftIcon, 
@@ -21,12 +22,13 @@ import { pilgrimExperienceApi } from '../../services/pilgrimExperienceApi';
 const PilgrimExperienceDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user, token } = useSelector((state) => state.auth);
   
   const [experience, setExperience] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [selectedDate, setSelectedDate] = useState('');
+  const [selectedDateRange, setSelectedDateRange] = useState(null);
   const [selectedOccupancy, setSelectedOccupancy] = useState('Single');
   const [quantity, setQuantity] = useState(1);
   const [expandedDays, setExpandedDays] = useState({});
@@ -47,9 +49,7 @@ const PilgrimExperienceDetail = () => {
         date => new Date(date.from) >= new Date()
       );
       if (nextAvailableDate) {
-        const fromDate = new Date(nextAvailableDate.from).toISOString().split('T')[0];
-        const toDate = new Date(nextAvailableDate.to).toISOString().split('T')[0];
-        setSelectedDate(`${fromDate} to ${toDate}`);
+        setSelectedDateRange(nextAvailableDate);
       }
     }
   }, [experience]);
@@ -135,16 +135,44 @@ const PilgrimExperienceDetail = () => {
     return `${formatDate(from)} - ${formatDate(to)}`;
   };
 
-  const handleBookNow = () => {
-    // TODO: Implement booking functionality
-    console.log('Booking:', {
-      experienceId: id,
-      selectedDate,
-      selectedOccupancy,
-      quantity,
-      price: getCurrentPrice()
-    });
-    alert('Booking functionality will be implemented soon!');
+    const handleBookNow = () => {
+    if (!selectedDateRange) {
+      alert('Please select a date range first');
+      return;
+    }
+
+    try {
+      // Check if user is authenticated
+      if (!user || !token) {
+        // Save current booking parameters and redirect to login
+        const bookingParams = new URLSearchParams({
+          experienceId: id,
+          occupancy: selectedOccupancy,
+          sessionCount: quantity,
+          selectedDates: JSON.stringify(selectedDateRange)
+        });
+        
+        const bookingUrl = `/booking/review?${bookingParams.toString()}`;
+        navigate(`/login?redirect=${encodeURIComponent(bookingUrl)}`);
+        return;
+      }
+
+      // Create booking parameters
+      const bookingParams = new URLSearchParams({
+        experienceId: id,
+        occupancy: selectedOccupancy,
+        sessionCount: quantity,
+        selectedDates: JSON.stringify(selectedDateRange)
+      });
+
+      const bookingReviewUrl = `/booking/review?${bookingParams.toString()}`;
+      
+      // Navigate to booking review page
+      navigate(bookingReviewUrl);
+    } catch (error) {
+      console.error('Error in handleBookNow:', error);
+      alert('Something went wrong. Please try again.');
+    }
   };
 
   const handleMeetGuideClick = () => {
@@ -354,8 +382,9 @@ const PilgrimExperienceDetail = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-3">Package Options</label>
                 <div className="space-y-2">
                   {experience.availableDates.map((dateRange, index) => {
-                    const dateValue = `${dateRange.from} to ${dateRange.to}`;
-                    const isSelected = selectedDate === dateValue;
+                    const isSelected = selectedDateRange && 
+                      selectedDateRange.from === dateRange.from && 
+                      selectedDateRange.to === dateRange.to;
                     return (
                       <label 
                         key={index} 
@@ -366,9 +395,9 @@ const PilgrimExperienceDetail = () => {
                         <input
                           type="radio"
                           name="dateRange"
-                          value={dateValue}
+                          value={index}
                           checked={isSelected}
-                          onChange={(e) => setSelectedDate(e.target.value)}
+                          onChange={() => setSelectedDateRange(dateRange)}
                           className="sr-only"
                         />
                         <span className="text-sm font-medium">
@@ -464,10 +493,19 @@ const PilgrimExperienceDetail = () => {
               </div>
             </div>
 
+            {/* Date Selection Message */}
+            {!selectedDateRange && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                <p className="text-amber-800 text-sm text-center">
+                  Please select a package option above to continue with booking
+                </p>
+              </div>
+            )}
+
             {/* Book Now Button */}
             <button
               onClick={handleBookNow}
-              disabled={!selectedDate}
+              disabled={!selectedDateRange}
               className="w-full bg-gray-900 text-white py-3 rounded-lg font-medium hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               Book Now
@@ -716,8 +754,9 @@ const PilgrimExperienceDetail = () => {
               <label className="block text-sm font-medium text-gray-700 mb-3">Package Options</label>
               <div className="space-y-2">
                 {experience.availableDates.map((dateRange, index) => {
-                  const dateValue = `${dateRange.from} to ${dateRange.to}`;
-                  const isSelected = selectedDate === dateValue;
+                  const isSelected = selectedDateRange && 
+                    selectedDateRange.from === dateRange.from && 
+                    selectedDateRange.to === dateRange.to;
                   return (
                     <label 
                       key={index} 
@@ -728,9 +767,9 @@ const PilgrimExperienceDetail = () => {
                       <input
                         type="radio"
                         name="dateRange"
-                        value={dateValue}
+                        value={index}
                         checked={isSelected}
-                        onChange={(e) => setSelectedDate(e.target.value)}
+                        onChange={() => setSelectedDateRange(dateRange)}
                         className="sr-only"
                       />
                       <span className="text-sm font-medium">
@@ -826,10 +865,19 @@ const PilgrimExperienceDetail = () => {
             </div>
           </div>
 
+          {/* Date Selection Message */}
+          {!selectedDateRange && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+              <p className="text-amber-800 text-sm text-center">
+                Please select a package option above to continue with booking
+              </p>
+            </div>
+          )}
+
           {/* Book Now Button */}
           <button
             onClick={handleBookNow}
-            disabled={!selectedDate}
+            disabled={!selectedDateRange}
             className="w-full bg-gray-900 text-white py-3 rounded-lg font-medium hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             Book Now
