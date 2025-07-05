@@ -1,8 +1,9 @@
 // src/services/pilgrimExperienceApi.js
 import axios from 'axios';
+import { getTokenFromCookie } from '../utils/cookies';
 
 // Use import.meta.env instead of process.env for Vite
-const API_BASE_URL = import.meta.env.REACT_APP_API_URL || 'http://localhost:3000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
 // Create axios instance with default config
 const api = axios.create({
@@ -11,7 +12,11 @@ const api = axios.create({
 
 // Add auth token to requests
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
+  // Prefer cookies, fallback to localStorage (for older sessions)
+  let token = getTokenFromCookie();
+  if (!token) {
+    token = localStorage.getItem('token');
+  }
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }

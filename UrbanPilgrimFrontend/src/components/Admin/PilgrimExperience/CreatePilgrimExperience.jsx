@@ -25,6 +25,8 @@ const CreatePilgrimExperience = () => {
     }],
     priceSingle: '',
     priceCouple: '',
+    numberOfDays: '',
+    numberOfNights: '',
     location: '',
     address: '',
     mapLink: '',
@@ -318,6 +320,13 @@ const CreatePilgrimExperience = () => {
     setLoading(true);
     setError(null);
 
+    // Validate at least one occupancy
+    if (formData.occupancyOptions.length === 0) {
+      setError('Please select at least one occupancy type (Single or Twin)');
+      setLoading(false);
+      return;
+    }
+
     // Validate map link if provided
     if (formData.mapLink && !validateMapLink(formData.mapLink)) {
       setError('Please enter a valid Google Maps URL (e.g., https://maps.google.com/...)');
@@ -412,33 +421,98 @@ const CreatePilgrimExperience = () => {
               />
             </div>
 
+            {/* Occupancy Options - moved above price */}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Occupancy Options *
+              </label>
+              <div className="flex space-x-4">
+                {['Single', 'Couple'].map(option => (
+                  <label key={option} className="inline-flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={formData.occupancyOptions.includes(option)}
+                      onChange={() => handleOccupancyChange(option)}
+                      className="rounded border-gray-300 text-amber-600 focus:ring-amber-500"
+                    />
+                    <span className="ml-2 text-sm text-gray-700">{option === 'Couple' ? 'Twin' : 'Single'}</span>
+                  </label>
+                ))}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Select which occupancy types are available for this experience (at least one required)
+              </p>
+            </div>
+
+            {/* Prices row - show inputs side by side */}
+            {(formData.occupancyOptions.includes('Single') || formData.occupancyOptions.includes('Couple')) && (
+              <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Single Price */}
+                {formData.occupancyOptions.includes('Single') && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Price for Single Occupancy (₹) *
+                    </label>
+                    <input
+                      type="number"
+                      name="priceSingle"
+                      value={formData.priceSingle}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-amber-500 focus:border-amber-500"
+                      placeholder="2300"
+                    />
+                  </div>
+                )}
+                {/* Twin Price */}
+                {formData.occupancyOptions.includes('Couple') && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Price for Twin Occupancy (₹) *
+                    </label>
+                    <input
+                      type="number"
+                      name="priceCouple"
+                      value={formData.priceCouple}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-amber-500 focus:border-amber-500"
+                      placeholder="1700"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* NEW: Number of Days */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Price for Single Occupancy (₹) *
+                Number of Days *
               </label>
               <input
                 type="number"
-                name="priceSingle"
-                value={formData.priceSingle}
+                name="numberOfDays"
+                value={formData.numberOfDays}
                 onChange={handleInputChange}
                 required
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-amber-500 focus:border-amber-500"
-                placeholder="45000"
+                placeholder="4"
               />
             </div>
 
+            {/* NEW: Number of Nights */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Price for Couple Occupancy (₹) *
+                Number of Nights *
               </label>
               <input
                 type="number"
-                name="priceCouple"
-                value={formData.priceCouple}
+                name="numberOfNights"
+                value={formData.numberOfNights}
                 onChange={handleInputChange}
                 required
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-amber-500 focus:border-amber-500"
-                placeholder="80000"
+                placeholder="3"
               />
             </div>
 
@@ -500,28 +574,6 @@ const CreatePilgrimExperience = () => {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-amber-500 focus:border-amber-500"
               placeholder="Describe what participants can expect from this experience..."
             />
-          </div>
-
-          <div className="mt-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Occupancy Options
-            </label>
-            <div className="flex space-x-4">
-              {['Single', 'Couple'].map(option => (
-                <label key={option} className="inline-flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={formData.occupancyOptions.includes(option)}
-                    onChange={() => handleOccupancyChange(option)}
-                    className="rounded border-gray-300 text-amber-600 focus:ring-amber-500"
-                  />
-                  <span className="ml-2 text-sm text-gray-700">{option}</span>
-                </label>
-              ))}
-            </div>
-            <p className="text-xs text-gray-500 mt-1">
-              Select which occupancy types are available for this experience
-            </p>
           </div>
 
           <div className="mt-6">

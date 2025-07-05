@@ -137,8 +137,8 @@ const BookingReview = () => {
         },
         modal: {
           ondismiss: function () {
-            // If user closes the payment window, navigate to timeout page so the user can retry
-            navigate('/payment/status');
+            // User closed the Razorpay widget without paying – treat as failure/cancelled
+            navigate(`/payment/status?razorpay_order_id=${orderId}&error_code=USER_CANCELLED&error_description=${encodeURIComponent('Payment window closed by user')}`);
           }
         }
       };
@@ -146,8 +146,9 @@ const BookingReview = () => {
       const rzp = new window.Razorpay(options);
 
       rzp.on('payment.failed', function (err) {
-        const { order_id, code, description } = err.error.metadata || {};
-        navigate(`/payment/status?razorpay_order_id=${order_id}&error_code=${code}&error_description=${encodeURIComponent(description)}`);
+        // Razorpay returns order_id, code, description at the top level of err.error
+        const { order_id, code, description } = err.error || {};
+        navigate(`/payment/status?razorpay_order_id=${order_id}&error_code=${code}&error_description=${encodeURIComponent(description || 'Payment failed')}`);
       });
 
       rzp.open();
@@ -286,7 +287,7 @@ const BookingReview = () => {
                 <div className="flex items-center text-sm">
                   <UsersIcon className="h-4 w-4 text-amber-600 mr-2" />
                   <span className="text-gray-700">
-                    {bookingData.bookingDetails.occupancy} Occupancy • {bookingData.bookingDetails.sessionCount} {bookingData.bookingDetails.sessionCount === 1 ? 'Session' : 'Sessions'}
+                    {bookingData.bookingDetails.occupancy === 'Couple' ? 'Twin' : bookingData.bookingDetails.occupancy} Occupancy
                   </span>
                 </div>
                 
@@ -421,7 +422,7 @@ const BookingReview = () => {
               <div className="flex items-center text-sm">
                 <UsersIcon className="h-4 w-4 text-amber-600 mr-2" />
                 <span className="text-gray-700">
-                  {bookingData.bookingDetails.occupancy} Occupancy • {bookingData.bookingDetails.sessionCount} {bookingData.bookingDetails.sessionCount === 1 ? 'Session' : 'Sessions'}
+                  {bookingData.bookingDetails.occupancy === 'Couple' ? 'Twin' : bookingData.bookingDetails.occupancy} Occupancy
                 </span>
               </div>
               

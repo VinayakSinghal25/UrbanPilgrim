@@ -11,10 +11,11 @@ class PricingService {
     // Calculate base amount
     let baseAmount;
     if (occupancy === 'Single') {
-      baseAmount = experience.priceSingle * sessionCount;
+      // Single occupancy: price is per person per day
+      baseAmount = experience.priceSingle * sessionCount * experience.numberOfDays;
     } else if (occupancy === 'Couple') {
-      // priceCouple is per person, so multiply by 2 for total couple price
-      baseAmount = (experience.priceCouple * 2) * sessionCount;
+      // Twin/shared room: priceCouple is already for one person per day
+      baseAmount = experience.priceCouple * sessionCount * experience.numberOfDays;
     } else {
       throw new Error('Invalid occupancy type');
     }

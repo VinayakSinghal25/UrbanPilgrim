@@ -27,6 +27,9 @@ const pilgrimExperienceSchema = new mongoose.Schema({
   programSchedule: [dayScheduleSchema],
   priceSingle: { type: Number, required: true },
   priceCouple: { type: Number, required: true },
+  // NEW duration fields (required) [no. of days & nights]
+  numberOfDays: { type: Number, required: true },
+  numberOfNights: { type: Number, required: true },
   location: { type: String },
   address: { type: String }, // New field: Address paragraph
   mapLink: { type: String }, // New field: Google Maps location link

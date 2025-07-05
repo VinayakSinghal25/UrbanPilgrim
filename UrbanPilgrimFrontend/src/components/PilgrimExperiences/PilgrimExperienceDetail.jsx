@@ -70,7 +70,7 @@ const PilgrimExperienceDetail = () => {
 
   const formatPrice = (price) => {
     if (!price) return 'Price on request';
-    return `Rs. ${price.toLocaleString()}.00`;
+    return `Rs. ${price.toLocaleString()}.00/day`;
   };
 
   const fetchExperience = async () => {
@@ -371,9 +371,15 @@ const PilgrimExperienceDetail = () => {
                   {formatPrice(getCurrentPrice())}
                 </p>
                 <span className="text-sm text-gray-500">
-                  ({selectedOccupancy} Occupancy)
+                  ({selectedOccupancy === 'Couple' ? 'Twin' : selectedOccupancy} Occupancy)
                 </span>
               </div>
+              {/* Duration Display */}
+              {experience.numberOfDays && experience.numberOfNights && (
+                <p className="text-sm text-gray-600 mt-1">
+                  Duration : {experience.numberOfNights} Nights, {experience.numberOfDays} Days
+                </p>
+              )}
             </div>
 
             {/* Package Options */}
@@ -425,14 +431,14 @@ const PilgrimExperienceDetail = () => {
                           isSelected ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-300 hover:bg-gray-50'
                         }`}
                       >
-                        {option}
+                        {option === 'Couple' ? 'Twin' : 'Single'}
                         {/* Show price for each option */}
                         <div className="text-xs mt-1">
                           {option === 'Single' && experience.priceSingle && (
-                            <span>₹{experience.priceSingle.toLocaleString()}</span>
+                            <span>₹{experience.priceSingle.toLocaleString()}/day</span>
                           )}
                           {option === 'Couple' && experience.priceCouple && (
-                            <span>₹{experience.priceCouple.toLocaleString()}</span>
+                            <span>₹{experience.priceCouple.toLocaleString()}/day</span>
                           )}
                         </div>
                       </button>
@@ -743,9 +749,15 @@ const PilgrimExperienceDetail = () => {
                 {formatPrice(getCurrentPrice())}
               </p>
               <span className="text-sm text-gray-500">
-                ({selectedOccupancy} Occupancy)
+                ({selectedOccupancy === 'Couple' ? 'Twin' : selectedOccupancy} Occupancy)
               </span>
             </div>
+            {/* Duration Display */}
+            {experience.numberOfDays && experience.numberOfNights && (
+              <p className="text-sm text-gray-600 mt-1">
+                Duration : {experience.numberOfNights} Nights, {experience.numberOfDays} Days
+              </p>
+            )}
           </div>
 
           {/* Package Options */}
@@ -797,14 +809,14 @@ const PilgrimExperienceDetail = () => {
                         isSelected ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-300 hover:bg-gray-50'
                       }`}
                     >
-                      {option}
+                      {option === 'Couple' ? 'Twin' : 'Single'}
                       {/* Show price for each option */}
                       <div className="text-xs mt-1">
                         {option === 'Single' && experience.priceSingle && (
-                          <span>₹{experience.priceSingle.toLocaleString()}</span>
+                          <span>₹{experience.priceSingle.toLocaleString()}/day</span>
                         )}
                         {option === 'Couple' && experience.priceCouple && (
-                          <span>₹{experience.priceCouple.toLocaleString()}</span>
+                          <span>₹{experience.priceCouple.toLocaleString()}/day</span>
                         )}
                       </div>
                     </button>

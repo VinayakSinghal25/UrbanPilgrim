@@ -96,7 +96,7 @@ class PilgrimBookingController {
             occupancy,
             sessionCount: sessions,
             selectedDates: dates,
-            totalPeople: occupancy === 'Single' ? sessions : sessions * 2
+            totalPeople: sessions
           },
           pricing: pricingDetails,
           termsAndConditions: experience.termsAndConditions,
@@ -190,7 +190,7 @@ class PilgrimBookingController {
           occupancy,
           sessionCount: parseInt(sessionCount),
           selectedDates,
-          totalPeople: occupancy === 'Single' ? parseInt(sessionCount) : parseInt(sessionCount) * 2
+          totalPeople: parseInt(sessionCount)
         },
         pricing: pricingDetails,
         status: 'payment_pending',

@@ -260,6 +260,7 @@ const bookingSchema = new mongoose.Schema({
     enum: [
       'draft',
       'payment_pending',
+      'payment_failed',
       'confirmed',
       'in_progress',
       'completed',
