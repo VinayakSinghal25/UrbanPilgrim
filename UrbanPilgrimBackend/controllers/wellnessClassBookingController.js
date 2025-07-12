@@ -256,10 +256,6 @@ class WellnessClassBookingController {
     try {
       const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
 
-      console.log('=== PAYMENT CALLBACK START ===');
-      console.log('Order ID:', razorpay_order_id);
-      console.log('Payment ID:', razorpay_payment_id);
-
       // Verify signature
       const isValid = RazorpayService.verifyPaymentSignature(
         razorpay_order_id,
@@ -279,12 +275,8 @@ class WellnessClassBookingController {
 
       if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
 
-      console.log('Booking found:', booking.bookingId);
-      console.log('Current booking status:', booking.status);
-
       // PREVENT DUPLICATE PROCESSING - Check if already confirmed
       if (booking.status === 'confirmed') {
-        console.log('⚠️  DUPLICATE CALLBACK - Booking already confirmed');
         return res.json({
           success: true,
           data: {
@@ -308,31 +300,19 @@ class WellnessClassBookingController {
       const slotIds = booking.bookingDetails.selectedSlots.map(slot => slot.slotId);
       const attendeeCount = booking.bookingDetails.attendeeCount;
 
-      console.log('Updating slot capacity:');
-      console.log('- Slot IDs:', slotIds);
-      console.log('- Attendee count:', attendeeCount);
-
       // Update each booked slot's capacity - using save() instead of findByIdAndUpdate to trigger middleware
       for (const slotId of slotIds) {
-        console.log(`Updating slot ${slotId}...`);
-        
         // Find and update slot individually to trigger pre-save middleware
         const slot = await TimeSlot.findById(slotId);
         if (slot) {
-          console.log(`- Before: currentBookings=${slot.currentBookings}, availableSlots=${slot.availableSlots}`);
-          
           slot.currentBookings += attendeeCount;
           slot.bookings.push(booking._id);
           
           await slot.save(); // This triggers pre-save middleware which recalculates availableSlots
-          
-          console.log(`- After: currentBookings=${slot.currentBookings}, availableSlots=${slot.availableSlots}`);
         } else {
-          console.error(`❌ Slot ${slotId} not found`);
+          console.error(`Slot ${slotId} not found during booking confirmation`);
         }
       }
-
-      console.log('=== PAYMENT CALLBACK END ===');
 
       // TODO: send confirmation email
 
