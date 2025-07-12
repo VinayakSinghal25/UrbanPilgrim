@@ -215,14 +215,14 @@ const WellnessGuideClassBooking = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Sticky Booking Summary Header */}
-      <div className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
+      <div className="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between py-3 sm:py-4">
             {/* Back Button & Class Info */}
-            <div className="flex items-center space-x-3 sm:space-x-4 flex-1">
+            <div className="flex items-center space-x-3 sm:space-x-4 flex-1 min-w-0">
               <button
                 onClick={() => navigate(-1)}
-                className="text-gray-600 hover:text-gray-800 transition-colors"
+                className="text-gray-600 hover:text-gray-800 transition-colors flex-shrink-0"
               >
                 <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -240,8 +240,8 @@ const WellnessGuideClassBooking = () => {
 
             {/* Booking Summary */}
             {selectedTimeSlots.length > 0 && (
-              <div className="flex items-center space-x-3 sm:space-x-4">
-                <div className="text-right">
+              <div className="flex items-center space-x-2 sm:space-x-4 flex-shrink-0">
+                <div className="text-right hidden sm:block">
                   <div className="text-xs sm:text-sm text-gray-600">
                     {selectedTimeSlots.length} session{selectedTimeSlots.length > 1 ? 's' : ''} • {numberOfPeople} {numberOfPeople > 1 ? 'people' : 'person'}
                   </div>
@@ -254,13 +254,24 @@ const WellnessGuideClassBooking = () => {
                     )}
                   </div>
                 </div>
-                <div className="flex space-x-2">
-                  <button className="bg-gray-800 text-white px-3 sm:px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-900 transition-colors">
+                
+                {/* Mobile Price Display */}
+                <div className="text-right sm:hidden">
+                  <div className="text-sm font-bold text-gray-900">
+                    ₹{pricing.total.toLocaleString()}
+                  </div>
+                  <div className="text-xs text-gray-600">
+                    {selectedTimeSlots.length} session{selectedTimeSlots.length > 1 ? 's' : ''}
+                  </div>
+                </div>
+                
+                <div className="flex space-x-1 sm:space-x-2">
+                  <button className="hidden sm:block bg-gray-800 text-white px-3 sm:px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-900 transition-colors">
                     Add to Cart
                   </button>
                   <button
                     onClick={handleBookNow}
-                    className="bg-emerald-600 text-white px-3 sm:px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors"
+                    className="bg-emerald-600 text-white px-2 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium hover:bg-emerald-700 transition-colors whitespace-nowrap"
                   >
                     Book Now
                   </button>
@@ -268,6 +279,22 @@ const WellnessGuideClassBooking = () => {
               </div>
             )}
           </div>
+          
+          {/* Mobile Booking Summary Row */}
+          {selectedTimeSlots.length > 0 && (
+            <div className="sm:hidden pb-3 px-4">
+              <div className="flex items-center justify-between text-xs text-gray-600">
+                <span>
+                  {selectedTimeSlots.length} session{selectedTimeSlots.length > 1 ? 's' : ''} • {numberOfPeople} {numberOfPeople > 1 ? 'people' : 'person'}
+                </span>
+                {pricing.discount && (
+                  <span className="text-green-600">
+                    {pricing.discount.discountPercentage}% off
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
