@@ -339,6 +339,98 @@ class PricingService {
       };
     }
   }
+
+  /**
+   * Calculate pricing for Wellness Guide Class booking
+   * @param {Object} wellnessClass - WellnessGuideClass document
+   * @param {Array} selectedSlots - Array of TimeSlot documents (must belong to the class)
+   * @param {Number} attendeeCount - Number of attendees being booked for every slot
+   * @returns {Object} pricing breakdown similar to pilgrim pricing structure
+   */
+  static calculateWellnessClassPricing(wellnessClass, selectedSlots, attendeeCount) {
+    // ----- Basic validation -----
+    if (!wellnessClass) {
+      throw new Error('Class not found');
+    }
+    if (!selectedSlots || selectedSlots.length === 0) {
+      throw new Error('At least one time slot must be selected');
+    }
+    if (!attendeeCount || attendeeCount < 1 || attendeeCount > 100) {
+      throw new Error('attendeeCount must be between 1 and 100');
+    }
+
+    // Make sure all slots share the same mode (online/offline) for margin/discount logic
+    const mode = selectedSlots[0].mode;
+    if (!selectedSlots.every((s) => s.mode === mode)) {
+      throw new Error('Mixed booking modes are not supported. Select slots of the same mode.');
+    }
+
+    // ----- Base Amount -----
+    const slotPriceTotal = selectedSlots.reduce((sum, slot) => sum + slot.price, 0);
+    const baseAmount = slotPriceTotal * attendeeCount;
+
+    // ----- Discount calculation (tier-based defined in adminSettings) -----
+    let totalDiscount = 0;
+    let appliedRule = null;
+    const discountConfigKey = mode === 'online' ? 'onlineDiscount' : 'offlineDiscount';
+    const discountConfig = wellnessClass.adminSettings?.[discountConfigKey];
+
+    if (discountConfig?.isEnabled && Array.isArray(discountConfig.tiers)) {
+      const classCount = selectedSlots.length;
+      discountConfig.tiers.forEach((tier) => {
+        if (classCount >= tier.minClasses) {
+          const discountAmt = (baseAmount * tier.discountPercentage) / 100;
+          if (discountAmt > totalDiscount) {
+            totalDiscount = discountAmt;
+            appliedRule = `${tier.minClasses}_classes_${tier.discountPercentage}_percent`;
+          }
+        }
+      });
+    }
+
+    // ----- Taxes (placeholder – all zeros for now) -----
+    const taxes = {
+      gst: 0,
+      serviceTax: 0,
+      tds: 0,
+      tourismTax: 0,
+      totalTax: 0,
+    };
+
+    const discountedAmount = baseAmount - totalDiscount;
+    const totalAmount = discountedAmount + taxes.totalTax; // currently same as discountedAmount
+
+    // ----- Platform Margin -----
+    const platformMarginPerc = wellnessClass.adminSettings?.platformMargin?.[mode] || 0;
+    const platformMarginAmount = (discountedAmount * platformMarginPerc) / 100;
+    const guideEarning = discountedAmount - platformMarginAmount;
+
+    return {
+      baseAmount,
+      discounts: {
+        bulkDiscount: totalDiscount,
+        totalDiscount,
+        appliedRule,
+      },
+      taxes,
+      platformMargin: {
+        percentage: platformMarginPerc,
+        appliedTo: mode,
+        amount: platformMarginAmount,
+      },
+      totalAmount,
+      guideEarning,
+      platformEarning: platformMarginAmount,
+      breakdown: {
+        slotPriceTotal,
+        attendeeCount,
+        classCount: selectedSlots.length,
+        totalDiscount,
+        totalTax: taxes.totalTax,
+        finalAmount: totalAmount,
+      },
+    };
+  }
 }
 
 module.exports = PricingService;

@@ -31,6 +31,7 @@ app.use('/api/email-verification', require('./routes/emailVerificationRoutes'));
 
 // 🆕 NEW: Booking routes
 app.use('/api/bookings', require('./routes/pilgrimBookingRoutes'));
+app.use('/api/bookings', require('./routes/wellnessClassBookingRoutes'));
 
 // 🆕 NEW: Admin routes
 app.use('/api/admin/bookings', require('./routes/adminPilgrimBookingRoutes'));

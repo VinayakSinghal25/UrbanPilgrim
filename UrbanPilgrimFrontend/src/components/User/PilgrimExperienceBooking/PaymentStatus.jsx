@@ -9,6 +9,7 @@ import {
   DocumentTextIcon 
 } from '@heroicons/react/24/outline';
 import { bookingApi } from '../../../api/bookingApi';
+import { classBookingApi } from '../../../api/classBookingApi';
 
 const PaymentStatus = () => {
   const [searchParams] = useSearchParams();
@@ -27,6 +28,7 @@ const PaymentStatus = () => {
   const razorpaySignature = searchParams.get('razorpay_signature');
   const errorCode = searchParams.get('error_code');
   const errorDescription = searchParams.get('error_description');
+  const flowType = searchParams.get('type') || 'experience'; // 'experience' | 'class'
 
   useEffect(() => {
     if (razorpayPaymentId && razorpaySignature) {
@@ -67,7 +69,7 @@ const PaymentStatus = () => {
         razorpay_signature: razorpaySignature
       };
 
-      const response = await bookingApi.handlePaymentCallback(paymentData);
+      const response = await (flowType === 'class' ? classBookingApi.handlePaymentCallback : bookingApi.handlePaymentCallback)(paymentData);
       
       if (response.success) {
         setPaymentStatus('success');
@@ -91,7 +93,7 @@ const PaymentStatus = () => {
         error_description: errorDescription
       };
 
-      await bookingApi.handlePaymentFailure(failureData);
+      await (flowType === 'class' ? classBookingApi.handlePaymentFailure : bookingApi.handlePaymentFailure)(failureData);
       setPaymentStatus('failed');
       setError(errorDescription || 'Payment failed');
     } catch (error) {
@@ -189,7 +191,7 @@ const PaymentStatus = () => {
             </div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Payment Successful!</h2>
             <p className="text-gray-600">
-              Your booking has been confirmed successfully.
+              {flowType === 'class' ? 'Your class booking has been confirmed successfully.' : 'Your booking has been confirmed successfully.'}
             </p>
           </div>
 
@@ -204,18 +206,18 @@ const PaymentStatus = () => {
           )}
 
           <div className="space-y-3">
-            <button
+            <button 
               onClick={handleMyBookings}
-              className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 font-medium flex items-center justify-center"
+              className="w-full bg-emerald-600 text-white py-3 rounded-lg font-medium hover:bg-emerald-700 mb-3 flex items-center justify-center"
             >
-              <DocumentTextIcon className="h-5 w-5 mr-2" />
-              View My Bookings
+              <DocumentTextIcon className="h-5 w-5 mr-2" /> View My Bookings
             </button>
+
             <button
-              onClick={() => navigate('/pilgrim-experiences')}
-              className="w-full border border-gray-300 text-gray-700 py-3 rounded-lg hover:bg-gray-50 font-medium"
+              onClick={() => navigate(flowType === 'class' ? '/wellness-guide-classes' : '/pilgrim-experiences')}
+              className="w-full bg-white border border-gray-300 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-50"
             >
-              Explore More Experiences
+              {flowType === 'class' ? 'Browse Classes' : 'Explore More Experiences'}
             </button>
           </div>
         </div>
@@ -252,10 +254,10 @@ const PaymentStatus = () => {
               Try Again
             </button>
             <button
-              onClick={() => navigate('/pilgrim-experiences')}
-              className="w-full border border-gray-300 text-gray-700 py-3 rounded-lg hover:bg-gray-50 font-medium"
+              onClick={() => navigate(flowType === 'class' ? '/wellness-guide-classes' : '/pilgrim-experiences')}
+              className="w-full bg-white border border-gray-300 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-50"
             >
-              Browse Experiences
+              {flowType === 'class' ? 'Browse Classes' : 'Browse Experiences'}
             </button>
           </div>
         </div>
@@ -303,10 +305,10 @@ const PaymentStatus = () => {
               )}
             </button>
             <button
-              onClick={() => navigate('/pilgrim-experiences')}
-              className="w-full border border-gray-300 text-gray-700 py-3 rounded-lg hover:bg-gray-50 font-medium"
+              onClick={() => navigate(flowType === 'class' ? '/wellness-guide-classes' : '/pilgrim-experiences')}
+              className="w-full bg-white border border-gray-300 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-50"
             >
-              Continue Browsing
+              {flowType === 'class' ? 'Browse Classes' : 'Continue Browsing'}
             </button>
           </div>
         </div>

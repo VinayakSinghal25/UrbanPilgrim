@@ -30,6 +30,8 @@ import ProfilePage from './pages/ProfilePage';
 import AdminDashboard from './pages/AdminDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import './App.css';
+import ClassBookingReview from './components/WellnessGuideClasses/ClassBookingReview';
+import ClassPaymentStatus from './components/WellnessGuideClasses/ClassPaymentStatus';
 
 function App() {
   return (
@@ -83,6 +85,15 @@ function App() {
             />
             
             <Route 
+              path="/class-payment/status" 
+              element={
+                <ProtectedRoute>
+                  <ClassPaymentStatus />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
               path="/profile" 
               element={
                 <ProtectedRoute>
@@ -117,6 +128,16 @@ function App() {
               element={
                 <ProtectedRoute requiredRole="WELLNESS_GUIDE">
                   <CreateWellnessGuideClass />
+                </ProtectedRoute>
+              } 
+            />
+            
+            {/* Protected route - Wellness class booking review */}
+            <Route 
+              path="/class-booking/review" 
+              element={
+                <ProtectedRoute>
+                  <ClassBookingReview />
                 </ProtectedRoute>
               } 
             />
