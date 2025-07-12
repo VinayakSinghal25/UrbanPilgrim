@@ -79,7 +79,7 @@ const timeSlotSchema = new mongoose.Schema({
 
 // Pre-save middleware to calculate available slots
 timeSlotSchema.pre('save', function(next) {
-  this.availableSlots = this.maxCapacity - this.currentBookings;
+  this.availableSlots = Math.max(0, this.maxCapacity - this.currentBookings);
   next();
 });
 
