@@ -92,7 +92,7 @@ const ClassPaymentStatus = () => {
 
   const formatTime = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
-  const handleMyBookings = () => navigate('/profile');
+  const handleMyBookings = () => navigate('/my-bookings');
 
   // --- UI STATES (reuse structure) ---
   const Wrapper = ({ icon, title, children }) => (

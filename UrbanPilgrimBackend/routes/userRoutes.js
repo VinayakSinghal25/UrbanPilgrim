@@ -16,6 +16,8 @@ const {
   getUserById,
   updateUserById,
   deleteUserById,
+  getUserBookings,
+  getBookingDetails
 } = require('../controllers/userController');
 
 // Import middleware
@@ -60,6 +62,10 @@ router.post('/google-auth', googleAuth);
 router.get('/profile', protect, getUserProfile);
 router.put('/profile', protect, upload.array('profilePictures', 3), updateUserProfile);
 router.post('/verify-email', protect, verifyEmail);
+
+// Booking routes (require authentication)
+router.get('/my-bookings', protect, getUserBookings);
+router.get('/booking/:bookingId', protect, getBookingDetails);
 
 // Admin only routes (fixed - use string instead of ROLES constant)
 router.get('/', protect, authorize('ADMIN'), getAllUsers);

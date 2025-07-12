@@ -135,7 +135,7 @@ const PaymentStatus = () => {
   };
 
   const handleMyBookings = () => {
-    navigate('/profile');
+    navigate('/my-bookings');
   };
 
   const handleTryAgain = () => {

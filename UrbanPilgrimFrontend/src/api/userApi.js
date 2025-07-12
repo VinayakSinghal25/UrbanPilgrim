@@ -68,3 +68,47 @@ export async function updateUserPassword(token, passwordData) {
     throw error;
   }
 }
+
+// Get user bookings
+export async function getUserBookings(token, page = 1, limit = 10, status = null, bookingType = null) {
+  try {
+    const params = new URLSearchParams({ page, limit });
+    if (status) params.append('status', status);
+    if (bookingType) params.append('bookingType', bookingType);
+    
+    const response = await fetch(`${BASE_URL}/my-bookings?${params}`, {
+      method: 'GET',
+      headers: getAuthHeaders(token),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to fetch bookings');
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching user bookings:', error);
+    throw error;
+  }
+}
+
+// Get booking details
+export async function getBookingDetails(token, bookingId) {
+  try {
+    const response = await fetch(`${BASE_URL}/booking/${bookingId}`, {
+      method: 'GET',
+      headers: getAuthHeaders(token),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to fetch booking details');
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching booking details:', error);
+    throw error;
+  }
+}

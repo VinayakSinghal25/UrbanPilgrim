@@ -65,7 +65,7 @@ const bookingSchema = new mongoose.Schema({
       enum: ['Single', 'Couple']
     },
     sessionCount: Number,        // Number of sessions (people/couples)
-    totalGuestCount: Number,     // Calculated: Single=sessionCount, Couple=sessionCount*2
+    totalGuestCount: Number,     // Always equals sessionCount (actual number of people booking)
     
     // For Wellness Class
     selectedSlots: [{
@@ -461,9 +461,9 @@ bookingSchema.pre('save', function(next) {
   
   // Calculate total guest count for pilgrim experiences
   if (this.bookingType === 'pilgrim_experience' && this.bookingDetails.sessionCount) {
-    this.bookingDetails.totalGuestCount = this.bookingDetails.occupancyType === 'Single' 
-      ? this.bookingDetails.sessionCount 
-      : this.bookingDetails.sessionCount * 2;
+    // totalGuestCount should always equal sessionCount (actual number of people)
+    // occupancyType is just room preference (Single room vs Shared room)
+    this.bookingDetails.totalGuestCount = this.bookingDetails.sessionCount;
   }
   
   // Calculate total slots for wellness classes

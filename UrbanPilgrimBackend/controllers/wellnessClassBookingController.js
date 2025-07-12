@@ -208,7 +208,7 @@ class WellnessClassBookingController {
           consentUserAgent: req.get('User-Agent'),
         },
         customerInfo: {
-          name: `${userDoc.firstName || ''} ${userDoc.lastName || ''}`.trim() || userDoc.name || '',
+          name: `${userDoc.firstName || ''} ${userDoc.lastName || ''}`.trim() || userDoc.name || userDoc.email.split('@')[0],
           email: userDoc.email,
           phone: userDoc.contactNumber || userDoc.phone || '',
         },

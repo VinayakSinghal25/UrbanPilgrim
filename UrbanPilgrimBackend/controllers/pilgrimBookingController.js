@@ -187,7 +187,7 @@ class PilgrimBookingController {
           entityId: experienceId
         },
         bookingDetails: {
-          occupancy,
+          occupancyType: occupancy, // Fixed: was 'occupancy', now 'occupancyType'
           sessionCount: parseInt(sessionCount),
           selectedDates,
           totalPeople: parseInt(sessionCount)
@@ -206,7 +206,7 @@ class PilgrimBookingController {
         },
 
         customerInfo: {
-          name: `${userDoc.firstName} ${userDoc.lastName}`.trim(),
+          name: `${userDoc.firstName || ''} ${userDoc.lastName || ''}`.trim() || userDoc.name || userDoc.email.split('@')[0],
           email: userDoc.email,
           phone: userDoc.contactNumber || userDoc.phone || ''
         }

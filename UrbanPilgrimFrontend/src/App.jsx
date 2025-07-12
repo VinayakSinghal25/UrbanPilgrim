@@ -28,6 +28,8 @@ import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import ProfilePage from './pages/ProfilePage';
 import AdminDashboard from './pages/AdminDashboard';
+import MyBookingsPage from './pages/MyBookingsPage';
+import BookingDetailsPage from './pages/BookingDetailsPage';
 import ProtectedRoute from './components/ProtectedRoute';
 import './App.css';
 import ClassBookingReview from './components/WellnessGuideClasses/ClassBookingReview';
@@ -98,6 +100,26 @@ function App() {
               element={
                 <ProtectedRoute>
                   <ProfilePage />
+                </ProtectedRoute>
+              } 
+            />
+            
+            {/* My Bookings */}
+            <Route 
+              path="/my-bookings" 
+              element={
+                <ProtectedRoute>
+                  <MyBookingsPage />
+                </ProtectedRoute>
+              } 
+            />
+            
+            {/* Booking Details */}
+            <Route 
+              path="/booking-details/:bookingId" 
+              element={
+                <ProtectedRoute>
+                  <BookingDetailsPage />
                 </ProtectedRoute>
               } 
             />
