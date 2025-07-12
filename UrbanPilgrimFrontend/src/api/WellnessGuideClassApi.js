@@ -217,6 +217,42 @@ export const updateWellnessGuideClassApproval = async (classId, isApproved, reje
   }
 };
 
+// Get all wellness guide classes for admin (Admin only)
+export const getAllWellnessGuideClassesForAdmin = async (params = {}) => {
+  try {
+    const response = await apiClient.get('/admin/all', { params });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
+// Update discount settings (Admin only)
+export const updateDiscountSettings = async (classId, onlineDiscount, offlineDiscount) => {
+  try {
+    const response = await apiClient.patch(`/${classId}/discount-settings`, {
+      onlineDiscount,
+      offlineDiscount
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
+// Update platform margin (Admin only)
+export const updatePlatformMargin = async (classId, online, offline) => {
+  try {
+    const response = await apiClient.patch(`/${classId}/platform-margin`, {
+      online,
+      offline
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
 export default {
   getAllApprovedClasses,
   getMyClasses,
@@ -232,4 +268,7 @@ export default {
   getScheduleRequestStatus,
   getPendingWellnessGuideClasses,
   updateWellnessGuideClassApproval,
+  getAllWellnessGuideClassesForAdmin,
+  updateDiscountSettings,
+  updatePlatformMargin,
 };
