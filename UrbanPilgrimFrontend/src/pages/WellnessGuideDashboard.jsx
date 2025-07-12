@@ -635,7 +635,29 @@ const WellnessGuideDashboard = () => {
             {/* Management Actions */}
             {/* Only show slot management for active classes */}
             {currentClass.status === 'active' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* View Time Slots */}
+                <div className="bg-white rounded-lg shadow p-6">
+                  <div className="flex items-center mb-4">
+                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                      <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-medium text-gray-900">View All Slots</h3>
+                      <p className="text-sm text-gray-600">View all your time slots and bookings</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => navigate(`/wellness-guide/class/${currentClass._id}/view-slots`)}
+                    className="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 font-medium"
+                  >
+                    View Time Slots
+                  </button>
+                </div>
+
                 {/* Add Recurring Time Slots */}
                 <div className="bg-white rounded-lg shadow p-6">
                   <div className="flex items-center mb-4">

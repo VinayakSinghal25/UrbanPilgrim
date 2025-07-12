@@ -1448,6 +1448,18 @@ const addTimeSlots = async (req, res) => {
     for (const slot of newSlots) {
       const slotDate = moment.tz(slot.date, classDetails.timezone);
       
+      // NEW: Use custom capacity if provided, otherwise use class default
+      const slotCapacity = slot.maxCapacity && slot.maxCapacity > 0 
+        ? parseInt(slot.maxCapacity) 
+        : classDetails.modes[mode].maxCapacity;
+      
+      // Validate custom capacity doesn't exceed reasonable limits
+      if (slotCapacity > 1000) {
+        return res.status(400).json({ 
+          message: `Slot capacity cannot exceed 1000. Slot on ${slot.date} has capacity ${slotCapacity}` 
+        });
+      }
+      
       const slotData = {
         wellnessGuideClass: classDetails._id,
         wellnessGuide: wellnessGuide._id,
@@ -1459,10 +1471,10 @@ const addTimeSlots = async (req, res) => {
         startTimeUTC: moment.tz(`${slotDate.format('YYYY-MM-DD')} ${slot.startTime}`, classDetails.timezone).utc().toDate(),
         endTimeUTC: moment.tz(`${slotDate.format('YYYY-MM-DD')} ${slot.endTime}`, classDetails.timezone).utc().toDate(),
         timezone: classDetails.timezone,
-        maxCapacity: classDetails.modes[mode].maxCapacity,
+        maxCapacity: slotCapacity,
         price: classDetails.modes[mode].price,
         currentBookings: 0,
-        availableSlots: classDetails.modes[mode].maxCapacity,
+        availableSlots: slotCapacity,
       };
       
       // Check for conflicts with existing slots (including other modes)
@@ -2084,6 +2096,18 @@ const addRecurringTimeSlots = async (req, res) => {
       // Generate online slots
       if (modes.online?.enabled) {
         for (const timeSlot of timeSlots.online) {
+          // NEW: Use custom capacity if provided, otherwise use class default
+          const slotCapacity = timeSlot.maxCapacity && timeSlot.maxCapacity > 0 
+            ? parseInt(timeSlot.maxCapacity) 
+            : classDetails.modes.online.maxCapacity;
+          
+          // Validate custom capacity doesn't exceed reasonable limits
+          if (slotCapacity > 1000) {
+            return res.status(400).json({ 
+              message: `Online slot capacity cannot exceed 1000. Time slot ${timeSlot.startTime}-${timeSlot.endTime} has capacity ${slotCapacity}` 
+            });
+          }
+          
           const slotData = {
             wellnessGuideClass: classDetails._id,
             wellnessGuide: wellnessGuide._id,
@@ -2095,10 +2119,10 @@ const addRecurringTimeSlots = async (req, res) => {
             startTimeUTC: moment.tz(`${date.format('YYYY-MM-DD')} ${timeSlot.startTime}`, classDetails.timezone).utc().toDate(),
             endTimeUTC: moment.tz(`${date.format('YYYY-MM-DD')} ${timeSlot.endTime}`, classDetails.timezone).utc().toDate(),
             timezone: classDetails.timezone,
-            maxCapacity: classDetails.modes.online.maxCapacity,
+            maxCapacity: slotCapacity,
             price: classDetails.modes.online.price,
             currentBookings: 0,
-            availableSlots: classDetails.modes.online.maxCapacity,
+            availableSlots: slotCapacity,
           };
           
           // Check for conflicts with existing slots (including individual slots)
@@ -2120,6 +2144,18 @@ const addRecurringTimeSlots = async (req, res) => {
       // Generate offline slots
       if (modes.offline?.enabled) {
         for (const timeSlot of timeSlots.offline) {
+          // NEW: Use custom capacity if provided, otherwise use class default
+          const slotCapacity = timeSlot.maxCapacity && timeSlot.maxCapacity > 0 
+            ? parseInt(timeSlot.maxCapacity) 
+            : classDetails.modes.offline.maxCapacity;
+          
+          // Validate custom capacity doesn't exceed reasonable limits
+          if (slotCapacity > 1000) {
+            return res.status(400).json({ 
+              message: `Offline slot capacity cannot exceed 1000. Time slot ${timeSlot.startTime}-${timeSlot.endTime} has capacity ${slotCapacity}` 
+            });
+          }
+          
           const slotData = {
             wellnessGuideClass: classDetails._id,
             wellnessGuide: wellnessGuide._id,
@@ -2131,10 +2167,10 @@ const addRecurringTimeSlots = async (req, res) => {
             startTimeUTC: moment.tz(`${date.format('YYYY-MM-DD')} ${timeSlot.startTime}`, classDetails.timezone).utc().toDate(),
             endTimeUTC: moment.tz(`${date.format('YYYY-MM-DD')} ${timeSlot.endTime}`, classDetails.timezone).utc().toDate(),
             timezone: classDetails.timezone,
-            maxCapacity: classDetails.modes.offline.maxCapacity,
+            maxCapacity: slotCapacity,
             price: classDetails.modes.offline.price,
             currentBookings: 0,
-            availableSlots: classDetails.modes.offline.maxCapacity,
+            availableSlots: slotCapacity,
           };
           
           // Check for conflicts with existing slots (including individual slots)

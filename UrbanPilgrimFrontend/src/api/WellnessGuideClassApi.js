@@ -147,9 +147,15 @@ export const getClassDetailsWithMode = async (classId, mode = null, timezone = '
 // Add single time slots
 export const addTimeSlots = async (classId, slotsData) => {
   try {
+    console.log('🔗 API Call - Adding time slots for class:', classId);
+    console.log('📦 Payload being sent:', JSON.stringify(slotsData, null, 2));
+    
     const response = await apiClient.post(`/${classId}/time-slots`, slotsData);
+    
+    console.log('📥 API Response:', response.data);
     return response.data;
   } catch (error) {
+    console.error('🚨 API Error:', error.response?.data || error.message);
     throw error.response?.data || error.message;
   }
 };

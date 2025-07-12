@@ -21,6 +21,9 @@ import JoinGuidesPage from './pages/JoinGuidesPage';
 import WellnessGuideFormPage from './pages/WellnessGuideFormPage';
 import WellnessGuideDashboard from './pages/WellnessGuideDashboard';
 import CreateWellnessGuideClass from './pages/CreateWellnessGuideClass';
+import AddRecurringSlots from './pages/AddRecurringSlots';
+import AddSingleSlots from './pages/AddSingleSlots';
+import ViewTimeSlots from './pages/ViewTimeSlots';
 import WellnessGuideClassPage from './components/WellnessGuideClasses/WellnessGuideClassPage';
 import WellnessGuideClassBooking from './components/WellnessGuideClasses/WellnessGuideClassBooking';
 import EmailVerificationPage from './pages/EmailVerificationPage';
@@ -150,6 +153,36 @@ function App() {
               element={
                 <ProtectedRoute requiredRole="WELLNESS_GUIDE">
                   <CreateWellnessGuideClass />
+                </ProtectedRoute>
+              } 
+            />
+
+            {/* Add Recurring Slots */}
+            <Route 
+              path="/wellness-guide/class/:classId/add-recurring-slots" 
+              element={
+                <ProtectedRoute requiredRole="WELLNESS_GUIDE">
+                  <AddRecurringSlots />
+                </ProtectedRoute>
+              } 
+            />
+
+            {/* Add Single Slots */}
+            <Route 
+              path="/wellness-guide/class/:classId/add-single-slots" 
+              element={
+                <ProtectedRoute requiredRole="WELLNESS_GUIDE">
+                  <AddSingleSlots />
+                </ProtectedRoute>
+              } 
+            />
+
+            {/* View Time Slots */}
+            <Route 
+              path="/wellness-guide/class/:classId/view-slots" 
+              element={
+                <ProtectedRoute requiredRole="WELLNESS_GUIDE">
+                  <ViewTimeSlots />
                 </ProtectedRoute>
               } 
             />
