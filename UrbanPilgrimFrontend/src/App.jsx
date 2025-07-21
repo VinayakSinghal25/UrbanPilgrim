@@ -28,100 +28,85 @@ import ProfilePage from './features/profile/pages/ProfilePage';
 import AdminDashboard from './features/admin/pages/AdminDashboard';
 import ProtectedRoute from './components/ui/ProtectedRoute';
 import HomePage from './features/home/pages/HomePage';
+import PilgrimRetreatsPage from './features/pilgrim-retreats/pages/PilgrimRetreatsPage';
+import PilgrimBazaarPage from './features/pilgrim-bazaar/pages/PilgrimBazaarPage';
+import AboutPage from './features/static/pages/AboutPage';
+import PilgrimGuidesCategoryPage from './features/pilgrim-guides/pages/PilgrimGuidesCategoryPage';
+import PilgrimSessionsPage from './features/pilgrim-sessions/pages/PilgrimSessionsPage';
 import './App.css';
 
-function App() {
+const App = () => {
   return (
     <Provider store={store}>
-      <div className="App">
-       <Banner />
-        <Header />
-        <main>
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            
-            {/* Public routes */}
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/signup" element={<SignupPage />} />
-            <Route path="/pilgrim-experiences" element={<PilgrimExperiences />} />
-            <Route path="/pilgrim-experiences/:id" element={<PilgrimExperienceDetail />} />
-            <Route path="/experience/:id" element={<ExperienceDetail />} />
-            <Route path="/wellness-guides" element={<WellnessGuideClasses />} />
-            <Route path="/wellness-guide-classes/:id" element={<WellnessGuideClassPage />} />
-            <Route path="/wellness-guide-classes/:id/book" element={<WellnessGuideClassBooking />} />
-            <Route path="/who-we-are" element={<WhoWeArePage />} />
-            <Route path="/why-choose-us" element={<WhyChooseUsPage />} />
-            <Route path="/contact" element={<ContactPage />} />
-            <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
-            <Route path="/join-curators" element={<JoinCuratorsPage />} />
-            <Route path="/join-guides" element={<JoinGuidesPage />} />
-            <Route path="/wellness-guide-form" element={<WellnessGuideFormPage />} />
-            <Route path="/verify-email" element={<EmailVerificationPage />} />
-            
-            {/* Protected routes */}
-            <Route 
-              path="/profile" 
-              element={
-                <ProtectedRoute>
-                  <ProfilePage />
-                </ProtectedRoute>
-              } 
-            />
-            
-            {/* Add profile settings route */}
-            <Route 
-              path="/profile/settings" 
-              element={
-                <ProtectedRoute>
-                  <div>Profile Settings - Coming Soon</div>
-                </ProtectedRoute>
-              } 
-            />
-            
-            {/* Wellness Guide Dashboard */}
-            <Route 
-              path="/wellness-guide-dashboard" 
-              element={
-                <ProtectedRoute>
-                  <WellnessGuideDashboard />
-                </ProtectedRoute>
-              } 
-            />
+      <Banner />
+      <Header />
+      <main>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/pilgrim-experiences" element={<PilgrimExperiences />} />
+          <Route path="/pilgrim-experiences/:id" element={<PilgrimExperienceDetail />} />
+          <Route path="/experience-booking/:id" element={<ExperienceDetail />} />
+          <Route path="/wellness-guide-classes" element={<WellnessGuideClasses />} />
+          <Route path="/class/:id" element={<WellnessGuideClassPage />} />
+          <Route path="/class-booking/:id" element={<WellnessGuideClassBooking />} />
+          <Route path="/who-we-are" element={<WhoWeArePage />} />
+          <Route path="/why-choose-us" element={<WhyChooseUsPage />} />
+          <Route path="/contact" element={<ContactPage />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+          <Route path="/join-curators" element={<JoinCuratorsPage />} />
+          <Route path="/join-guides" element={<JoinGuidesPage />} />
+          <Route path="/become-a-wellness-guide" element={<WellnessGuideFormPage />} />
+          <Route path="/email-verification" element={<EmailVerificationPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
 
-            {/* Wellness Guide Create Class */}
-            <Route 
-              path="/wellness-guide/create-class" 
-              element={
-                <ProtectedRoute requiredRole="WELLNESS_GUIDE">
-                  <CreateWellnessGuideClass />
-                </ProtectedRoute>
-              } 
-            />
-            
-            {/* Admin Dashboard Routes - Fixed role check */}
-            <Route 
-              path="/admin/dashboard/*" 
-              element={
-                <ProtectedRoute requiredRole="ADMIN">
-                  <AdminDashboard />
-                </ProtectedRoute>
-              } 
-            />
-            
-            {/* Add a redirect for just /admin */}
-            <Route 
-              path="/admin" 
-              element={<Navigate to="/admin/dashboard" replace />}
-            />
-            
-            {/* Catch all route - redirect to home */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </main>
-        <Footer />
-      </div>
+          {/* New Routes */}
+          <Route path="/pilgrim-retreats" element={<PilgrimRetreatsPage />} />
+          <Route path="/pilgrim-sessions" element={<PilgrimSessionsPage />} />
+          <Route path="/pilgrim-bazaar" element={<PilgrimBazaarPage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/pilgrim-guides/:category" element={<PilgrimGuidesCategoryPage />} />
+
+          {/* Protected Routes */}
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/wellness-guide-dashboard"
+            element={
+              <ProtectedRoute requiredRole="wellness_guide">
+                <WellnessGuideDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/create-class"
+            element={
+              <ProtectedRoute requiredRole="wellness_guide">
+                <CreateWellnessGuideClass />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin-dashboard/*"
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          {/* Fallback redirect */}
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      </main>
+      <Footer />
     </Provider>
   );
-}
+};
 
 export default App;

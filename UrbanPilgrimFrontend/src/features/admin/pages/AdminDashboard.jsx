@@ -9,10 +9,10 @@ import PendingWellnessGuides from '../components/Admin/WellnessGuide/PendingWell
 import WellnessGuideDetail from '../components/Admin/WellnessGuide/WellnessGuideDetail';
 import PendingWellnessGuideClasses from '../components/Admin/WellnessGuideClass/PendingWellnessGuideClasses';
 import WellnessGuideClassDetail from '../components/Admin/WellnessGuideClass/WellnessGuideClassDetail';
-import {
-  ChartBarIcon,
-  UsersIcon,
-  MapIcon,
+import { 
+  ChartBarIcon, 
+  UsersIcon, 
+  MapIcon, 
   CurrencyDollarIcon,
   UserGroupIcon,
   AcademicCapIcon
@@ -103,7 +103,7 @@ const AdminDashboard = () => {
       <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
         <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <button
+          <button 
             onClick={() => {
               console.log('Navigate to create experience');
               navigate('/admin/dashboard/pilgrim-experiences/create');
@@ -114,8 +114,8 @@ const AdminDashboard = () => {
             <h3 className="font-semibold text-gray-900">Create New Experience</h3>
             <p className="text-sm text-gray-600">Add a new pilgrim experience to your platform</p>
           </button>
-
-          <button
+          
+          <button 
             onClick={() => {
               console.log('Navigate to manage experiences');
               navigate('/admin/dashboard/pilgrim-experiences');
@@ -126,8 +126,8 @@ const AdminDashboard = () => {
             <h3 className="font-semibold text-gray-900">Manage Experiences</h3>
             <p className="text-sm text-gray-600">View and edit existing experiences</p>
           </button>
-
-          <button
+          
+          <button 
             onClick={() => {
               console.log('Navigate to pending wellness guides');
               navigate('/admin/dashboard/pending-wellness-guides');
@@ -138,8 +138,8 @@ const AdminDashboard = () => {
             <h3 className="font-semibold text-gray-900">Pending Guide Requests</h3>
             <p className="text-sm text-gray-600">Review and approve wellness guide applications</p>
           </button>
-
-          <button
+          
+          <button 
             onClick={() => {
               console.log('Navigate to pending wellness guide classes');
               navigate('/admin/dashboard/pending-wellness-guide-classes');
@@ -150,8 +150,8 @@ const AdminDashboard = () => {
             <h3 className="font-semibold text-gray-900">Pending Class Requests</h3>
             <p className="text-sm text-gray-600">Review and approve wellness guide class submissions</p>
           </button>
-
-          <button
+          
+          <button 
             onClick={() => {
               console.log('Navigate to analytics');
               navigate('/admin/dashboard/analytics');

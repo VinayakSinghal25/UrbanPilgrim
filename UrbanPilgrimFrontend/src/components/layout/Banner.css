@@ -1,15 +1,14 @@
 /* Green Banner Styles */
 .banner-green {
   position: relative;
-  width: 100vw;
-  left: 50%;
-  transform: translateX(-50%);
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   background: #11705E;
   height: 40px;
   padding: 0 2rem;
+  overflow-x: hidden;
 }
 
 .banner-green-icon {
