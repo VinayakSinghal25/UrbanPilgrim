@@ -3,45 +3,42 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { store } from './store/store';
-import Header from './components/Header';
-import Footer from './components/Footer';
-import Banner from './components/Banner';
-import PilgrimExperiences from './components/PilgrimExperiences/PilgrimExperiences';
-import PilgrimExperienceDetail from './components/PilgrimExperiences/PilgrimExperienceDetail';
-import ExperienceDetail from './components/User/PilgrimExperienceBooking/ExperienceDetail';
-import WellnessGuideClasses from './components/WellnessGuideClasses/WellnessGuideClasses';
-import WhoWeArePage from './pages/WhoWeArePage';
-import WhyChooseUsPage from './pages/WhyChooseUsPage';
-import ContactPage from './pages/ContactPage';
-import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
-import JoinCuratorsPage from './pages/JoinCuratorsPage';
-import JoinGuidesPage from './pages/JoinGuidesPage';
-import WellnessGuideFormPage from './pages/WellnessGuideFormPage';
-import WellnessGuideDashboard from './pages/WellnessGuideDashboard';
-import CreateWellnessGuideClass from './pages/CreateWellnessGuideClass';
-import WellnessGuideClassPage from './components/WellnessGuideClasses/WellnessGuideClassPage';
-import WellnessGuideClassBooking from './components/WellnessGuideClasses/WellnessGuideClassBooking';
-import EmailVerificationPage from './pages/EmailVerificationPage';
-import LoginPage from './pages/LoginPage';
-import SignupPage from './pages/SignupPage';
-import ProfilePage from './pages/ProfilePage';
-import AdminDashboard from './pages/AdminDashboard';
-import ProtectedRoute from './components/ProtectedRoute';
+import Header from './components/layout/Header';
+import Footer from './components/layout/Footer';
+import Banner from './components/layout/Banner';
+import PilgrimExperiences from './features/pilgrim-experiences/components/PilgrimExperiences/PilgrimExperiences';
+import PilgrimExperienceDetail from './features/pilgrim-experiences/components/PilgrimExperiences/PilgrimExperienceDetail';
+import ExperienceDetail from './features/pilgrim-experiences/components/User/PilgrimExperienceBooking/ExperienceDetail';
+import WellnessGuideClasses from './features/wellness-guides/components/WellnessGuideClasses/WellnessGuideClasses';
+import WhoWeArePage from './features/static/pages/WhoWeArePage';
+import WhyChooseUsPage from './features/static/pages/WhyChooseUsPage';
+import ContactPage from './features/static/pages/ContactPage';
+import PrivacyPolicyPage from './features/static/pages/PrivacyPolicyPage';
+import JoinCuratorsPage from './features/static/pages/JoinCuratorsPage';
+import JoinGuidesPage from './features/static/pages/JoinGuidesPage';
+import WellnessGuideFormPage from './features/wellness-guides/pages/WellnessGuideFormPage';
+import WellnessGuideDashboard from './features/wellness-guides/pages/WellnessGuideDashboard';
+import CreateWellnessGuideClass from './features/wellness-guides/pages/CreateWellnessGuideClass';
+import WellnessGuideClassPage from './features/wellness-guides/components/WellnessGuideClasses/WellnessGuideClassPage';
+import WellnessGuideClassBooking from './features/wellness-guides/components/WellnessGuideClasses/WellnessGuideClassBooking';
+import EmailVerificationPage from './features/auth/pages/EmailVerificationPage';
+import LoginPage from './features/auth/pages/LoginPage';
+import SignupPage from './features/auth/pages/SignupPage';
+import ProfilePage from './features/profile/pages/ProfilePage';
+import AdminDashboard from './features/admin/pages/AdminDashboard';
+import ProtectedRoute from './components/ui/ProtectedRoute';
+import HomePage from './features/home/pages/HomePage';
 import './App.css';
 
 function App() {
   return (
     <Provider store={store}>
       <div className="App">
+       <Banner />
         <Header />
         <main>
           <Routes>
-            <Route path="/" element={
-              <>
-                <Banner />
-                <PilgrimExperiences />
-              </>
-            } />
+            <Route path="/" element={<HomePage />} />
             
             {/* Public routes */}
             <Route path="/login" element={<LoginPage />} />
