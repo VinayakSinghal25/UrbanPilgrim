@@ -16,6 +16,8 @@ const {
   getUserById,
   updateUserById,
   deleteUserById,
+  getUserBookings,
+  getBookingDetails
 } = require('../controllers/userController');
 
 // Import middleware
@@ -61,10 +63,14 @@ router.get('/profile', protect, getUserProfile);
 router.put('/profile', protect, upload.array('profilePictures', 3), updateUserProfile);
 router.post('/verify-email', protect, verifyEmail);
 
-// Admin only routes
-router.get('/', protect, authorize(ROLES.ADMIN), getAllUsers);
-router.get('/:id', protect, authorize(ROLES.ADMIN), getUserById);
-router.put('/:id', protect, authorize(ROLES.ADMIN), updateUserById);
-router.delete('/:id', protect, authorize(ROLES.ADMIN), deleteUserById);
+// Booking routes (require authentication)
+router.get('/my-bookings', protect, getUserBookings);
+router.get('/booking/:bookingId', protect, getBookingDetails);
+
+// Admin only routes (fixed - use string instead of ROLES constant)
+router.get('/', protect, authorize('ADMIN'), getAllUsers);
+router.get('/:id', protect, authorize('ADMIN'), getUserById);
+router.put('/:id', protect, authorize('ADMIN'), updateUserById);
+router.delete('/:id', protect, authorize('ADMIN'), deleteUserById);
 
 module.exports = router;

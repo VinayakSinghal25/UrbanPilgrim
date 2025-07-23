@@ -1,5 +1,6 @@
 // controllers/userController.js
 const User = require('../models/User');
+const Booking = require('../models/Booking');
 const ROLES = require('../models/RoleEnum');
 const cloudinary = require('../config/cloudinaryConfig');
 
@@ -288,6 +289,183 @@ const verifyEmail = async (req, res) => {
   }
 };
 
+/**
+ * GET /api/users/my-bookings
+ * Get all bookings for the authenticated user (both pilgrim experience and wellness class)
+ */
+const getUserBookings = async (req, res) => {
+  try {
+    const userId = req.user.userId || req.user.id;
+    const { page = 1, limit = 10, status, bookingType } = req.query;
+
+    
+    // Build query
+    const query = { user: userId };
+    
+    // Filter by status if provided - use actual Booking model status values
+    if (status && ['draft', 'payment_pending', 'payment_failed', 'confirmed', 'in_progress', 'completed', 'cancelled', 'refunded', 'expired'].includes(status)) {
+      query.status = status;
+    }
+    
+    // Filter by booking type if provided
+    if (bookingType && ['pilgrim_experience', 'wellness_class'].includes(bookingType)) {
+      query.bookingType = bookingType;
+    }
+
+    const options = {
+      page: parseInt(page),
+      limit: parseInt(limit),
+      sort: { createdAt: -1 }
+    };
+
+    const result = await Booking.paginate(query, options);
+
+    // Instead of relying on populate, let's manually populate the entities
+    const formattedBookings = await Promise.all(result.docs.map(async booking => {
+      let populatedEntity = null;
+      
+      try {
+        if (booking.entity.entityType === 'PilgrimExperience') {
+          const PilgrimExperience = require('../models/PilgrimExperience');
+          populatedEntity = await PilgrimExperience.findById(booking.entity.entityId)
+            .select('name location images')
+            .lean();
+        } else if (booking.entity.entityType === 'WellnessGuideClass') {
+          const WellnessGuideClass = require('../models/WellnessGuideClass');
+          populatedEntity = await WellnessGuideClass.findById(booking.entity.entityId)
+            .select('title location photos')
+            .lean();
+        }
+      } catch (error) {
+        console.error('Error populating entity:', error);
+      }
+
+      return {
+        ...booking.toObject(),
+        entity: {
+          entityType: booking.entity.entityType,
+          entityId: populatedEntity
+        }
+      };
+    }));
+
+    // Format the response to include booking type specific data
+    const finalBookings = formattedBookings.map(booking => {
+      const bookingData = {
+        bookingId: booking.bookingId,
+        bookingType: booking.bookingType,
+        status: booking.status,
+        createdAt: booking.createdAt,
+        pricing: booking.pricing,
+        customerInfo: booking.customerInfo, // Use saved customerInfo.name directly
+        entity: booking.entity
+      };
+
+      // Add type-specific details
+      if (booking.bookingType === 'pilgrim_experience') {
+        bookingData.experienceDetails = {
+          selectedDates: booking.bookingDetails.selectedDates,
+          occupancyType: booking.bookingDetails.occupancyType || 'Single', // Direct access, fallback to Single
+          sessionCount: booking.bookingDetails.sessionCount,
+          totalGuestCount: booking.bookingDetails.totalGuestCount
+        };
+      } else if (booking.bookingType === 'wellness_class') {
+        bookingData.classDetails = {
+          selectedSlots: booking.bookingDetails.selectedSlots,
+          attendeeCount: booking.bookingDetails.attendeeCount,
+          classCount: booking.bookingDetails.classCount
+        };
+      }
+
+      return bookingData;
+    });
+
+    res.json({
+      success: true,
+      data: {
+        bookings: finalBookings,
+        pagination: {
+          totalBookings: result.totalDocs,
+          totalPages: result.totalPages,
+          currentPage: result.page,
+          hasNextPage: result.hasNextPage,
+          hasPrevPage: result.hasPrevPage
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Get user bookings error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get user bookings',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * GET /api/users/booking/:bookingId
+ * Get detailed booking information
+ */
+const getBookingDetails = async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    const userId = req.user.userId || req.user.id;
+
+    const booking = await Booking.findOne({
+      bookingId,
+      user: userId
+    });
+
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        message: 'Booking not found'
+      });
+    }
+
+    // Manually populate the entity
+    let populatedEntity = null;
+    
+    try {
+      if (booking.entity.entityType === 'PilgrimExperience') {
+        const PilgrimExperience = require('../models/PilgrimExperience');
+        populatedEntity = await PilgrimExperience.findById(booking.entity.entityId)
+          .select('name location images')
+          .lean();
+      } else if (booking.entity.entityType === 'WellnessGuideClass') {
+        const WellnessGuideClass = require('../models/WellnessGuideClass');
+        populatedEntity = await WellnessGuideClass.findById(booking.entity.entityId)
+          .select('title location photos')
+          .lean();
+      }
+    } catch (error) {
+      console.error('Error populating entity in getBookingDetails:', error);
+    }
+
+    const bookingWithPopulatedEntity = {
+      ...booking.toObject(),
+      entity: {
+        entityType: booking.entity.entityType,
+        entityId: populatedEntity
+      }
+    };
+
+    res.json({
+      success: true,
+      data: bookingWithPopulatedEntity
+    });
+
+  } catch (error) {
+    console.error('Error getting booking details:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+};
+
 // --- ADMIN CONTROLLERS ---
 
 // @desc    Get all users (for Admin)
@@ -399,4 +577,6 @@ module.exports = {
   getUserById,
   updateUserById,
   deleteUserById,
+  getUserBookings,
+  getBookingDetails
 };
