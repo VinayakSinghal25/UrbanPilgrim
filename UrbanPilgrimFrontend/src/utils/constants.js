@@ -1,4 +1,6 @@
 // src/utils/constants.js
+export const BASE_URL = 'http://localhost:3000/api';
+
 export const PRICE_RANGES = [
   { value: 'under-25000', label: 'Under ₹25,000' },
   { value: '25000-50000', label: '₹25,000 - ₹50,000' },

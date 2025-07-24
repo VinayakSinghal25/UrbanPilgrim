@@ -23,6 +23,7 @@ export default function Profile() {
 
   const handleLogout = () => {
     dispatch(logout());
+    localStorage.removeItem('token');
     navigate('/', { replace: true });
   };
 

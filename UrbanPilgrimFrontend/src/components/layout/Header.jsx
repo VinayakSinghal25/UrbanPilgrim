@@ -1,20 +1,29 @@
 // src/components/layout/Header.jsx
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useSelector, useDispatch } from 'react-redux';
+import { logout } from '../../slices/authSlice';
 
 const Header = () => {
   const location = useLocation();
   const [showGuidesDropdown, setShowGuidesDropdown] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
   const guidesDropdownRef = useRef(null);
+  const userDropdownRef = useRef(null);
+  const dispatch = useDispatch();
+  const { user, token } = useSelector(state => state.auth);
 
   useEffect(() => {
     function handleClickOutside(event) {
       if (guidesDropdownRef.current && !guidesDropdownRef.current.contains(event.target)) {
         setShowGuidesDropdown(false);
       }
+      if (userDropdownRef.current && !userDropdownRef.current.contains(event.target)) {
+        setShowUserDropdown(false);
+      }
     }
-    if (showGuidesDropdown) {
+    if (showGuidesDropdown || showUserDropdown) {
       document.addEventListener('mousedown', handleClickOutside);
     } else {
       document.removeEventListener('mousedown', handleClickOutside);
@@ -22,9 +31,16 @@ const Header = () => {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showGuidesDropdown]);
+  }, [showGuidesDropdown, showUserDropdown]);
 
   const isActive = (path) => location.pathname === path;
+
+  const handleLogout = () => {
+    dispatch(logout());
+    localStorage.removeItem('token');
+    setShowUserDropdown(false);
+    window.location.href = '/';
+  };
 
   return (
     <header>
@@ -34,6 +50,8 @@ const Header = () => {
           position: relative;
           color: #222;
           text-decoration: none;
+          display: inline-flex;
+          align-items: center;
         }
         .nav-link-animated::after {
           content: '';
@@ -54,6 +72,7 @@ const Header = () => {
         @media (max-width: 900px) {
           .header-main {
             padding: 0.7rem 1rem !important;
+            min-height: 80px !important;
           }
           .header-logo-img {
             height: 60px !important;
@@ -65,7 +84,7 @@ const Header = () => {
             padding: 0.5rem 0.7rem !important;
           }
           .header-logo-img {
-            height: 40px !important;
+            height: 50px !important;
           }
           .header-desktop-nav, .header-desktop-icons {
             display: none !important;
@@ -108,27 +127,126 @@ const Header = () => {
         }
       `}</style>
       {/* Main Header */}
-      <div className="header-main" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.7rem 2rem', background: 'white', minHeight: '120px' }}>
+      <div className="header-main" style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'space-between', 
+        padding: '1rem 2rem', 
+        background: 'white', 
+        minHeight: '90px',
+        maxHeight: '90px',
+        boxSizing: 'border-box'
+      }}>
         {/* Logo */}
-        <Link to="/" style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
-          <img src="/logo.webp" alt="Urban Pilgrim" className="header-logo-img" style={{ height: '100px', width: 'auto' }} />
+        <Link to="/" style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          textDecoration: 'none',
+          height: '70px',
+          flexShrink: 0
+        }}>
+          <img 
+            src="/logo.webp" 
+            alt="Urban Pilgrim" 
+            className="header-logo-img" 
+            style={{ 
+              height: '70px', 
+              width: 'auto',
+              objectFit: 'contain'
+            }} 
+          />
         </Link>
+        
         {/* Desktop Navigation */}
-        <nav className="header-desktop-nav" style={{ display: 'flex', alignItems: 'center', gap: '2.2rem', flex: 1, justifyContent: 'center' }}>
-          <Link to="/" className="nav-link-animated" style={{ color: isActive('/') ? '#133A5E' : '#222', fontWeight: 400, fontSize: '16px', paddingBottom: '2px' }}>Home</Link>
-          <Link to="/pilgrim-retreats" className={`nav-link-animated${isActive('/pilgrim-retreats') ? ' active' : ''}`} style={{ color: isActive('/pilgrim-retreats') ? '#133A5E' : '#222', fontWeight: 400, fontSize: '16px', paddingBottom: '2px' }}>Pilgrim Retreats</Link>
-          <Link to="/pilgrim-sessions" className={`nav-link-animated${isActive('/pilgrim-sessions') ? ' active' : ''}`} style={{ color: isActive('/pilgrim-sessions') ? '#133A5E' : '#222', fontWeight: 400, fontSize: '16px', paddingBottom: '2px' }}>Pilgrim Sessions</Link>
+        <nav className="header-desktop-nav" style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '2.2rem', 
+          flex: 1, 
+          justifyContent: 'center',
+          height: '70px'
+        }}>
+          <Link 
+            to="/" 
+            className="nav-link-animated" 
+            style={{ 
+              color: isActive('/') ? '#133A5E' : '#222', 
+              fontWeight: 400, 
+              fontSize: '16px',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center'
+            }}
+          >
+            Home
+          </Link>
+          <Link 
+            to="/pilgrim-retreats" 
+            className={`nav-link-animated${isActive('/pilgrim-retreats') ? ' active' : ''}`} 
+            style={{ 
+              color: isActive('/pilgrim-retreats') ? '#133A5E' : '#222', 
+              fontWeight: 400, 
+              fontSize: '16px',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center'
+            }}
+          >
+            Pilgrim Retreats
+          </Link>
+          <Link 
+            to="/pilgrim-sessions" 
+            className={`nav-link-animated${isActive('/pilgrim-sessions') ? ' active' : ''}`} 
+            style={{ 
+              color: isActive('/pilgrim-sessions') ? '#133A5E' : '#222', 
+              fontWeight: 400, 
+              fontSize: '16px',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center'
+            }}
+          >
+            Pilgrim Sessions
+          </Link>
+          
           {/* Pilgrim Guides Dropdown */}
-          <div style={{ position: 'relative' }} ref={guidesDropdownRef}>
+          <div style={{ 
+            position: 'relative',
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center'
+          }} ref={guidesDropdownRef}>
             <span
               className={`nav-link-animated${isActive('/pilgrim-guides') ? ' active' : ''}`}
-              style={{ color: isActive('/pilgrim-guides') ? '#133A5E' : '#222', fontWeight: 400, fontSize: '16px', cursor: 'pointer', paddingBottom: '2px' }}
+              style={{ 
+                color: isActive('/pilgrim-guides') ? '#133A5E' : '#222', 
+                fontWeight: 400, 
+                fontSize: '16px', 
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                height: '100%'
+              }}
               onClick={() => setShowGuidesDropdown((prev) => !prev)}
             >
-              Pilgrim Guides <svg style={{ display: 'inline', verticalAlign: 'middle', marginLeft: 2 }} width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M5 8L10 13L15 8" stroke="#222" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              Pilgrim Guides 
+              <svg style={{ marginLeft: 4 }} width="14" height="14" viewBox="0 0 20 20" fill="none">
+                <path d="M5 8L10 13L15 8" stroke="#222" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
             </span>
             {showGuidesDropdown && (
-              <div style={{ position: 'absolute', top: '2.1rem', left: 0, background: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', borderRadius: 6, minWidth: 210, zIndex: 10, padding: '0.7rem 0' }}>
+              <div style={{ 
+                position: 'absolute', 
+                top: '100%', 
+                left: 0, 
+                background: 'white', 
+                boxShadow: '0 2px 8px rgba(0,0,0,0.08)', 
+                borderRadius: 6, 
+                minWidth: 210, 
+                zIndex: 10, 
+                padding: '0.7rem 0',
+                marginTop: '8px'
+              }}>
                 <div style={{ padding: '0.5rem 1.2rem', color: '#222', fontSize: '16px', cursor: 'pointer', whiteSpace: 'nowrap' }}>Yoga gurus</div>
                 <div style={{ padding: '0.5rem 1.2rem', color: '#222', fontSize: '16px', cursor: 'pointer', whiteSpace: 'nowrap' }}>Meditation guides</div>
                 <div style={{ padding: '0.5rem 1.2rem', color: '#222', fontSize: '16px', cursor: 'pointer', whiteSpace: 'nowrap' }}>Mental wellness counsellors</div>
@@ -137,29 +255,204 @@ const Header = () => {
               </div>
             )}
           </div>
-          <Link to="/pilgrim-bazaar" className={`nav-link-animated${isActive('/pilgrim-bazaar') ? ' active' : ''}`} style={{ color: isActive('/pilgrim-bazaar') ? '#133A5E' : '#222', fontWeight: 400, fontSize: '16px', paddingBottom: '2px' }}>Pilgrim Bazaar</Link>
-          <Link to="/contact" className={`nav-link-animated${isActive('/contact') ? ' active' : ''}`} style={{ color: isActive('/contact') ? '#133A5E' : '#222', fontWeight: 400, fontSize: '16px', paddingBottom: '2px' }}>Contact</Link>
+          
+          <Link 
+            to="/pilgrim-bazaar" 
+            className={`nav-link-animated${isActive('/pilgrim-bazaar') ? ' active' : ''}`} 
+            style={{ 
+              color: isActive('/pilgrim-bazaar') ? '#133A5E' : '#222', 
+              fontWeight: 400, 
+              fontSize: '16px',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center'
+            }}
+          >
+            Pilgrim Bazaar
+          </Link>
+          <Link 
+            to="/contact" 
+            className={`nav-link-animated${isActive('/contact') ? ' active' : ''}`} 
+            style={{ 
+              color: isActive('/contact') ? '#133A5E' : '#222', 
+              fontWeight: 400, 
+              fontSize: '16px',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center'
+            }}
+          >
+            Contact
+          </Link>
         </nav>
+        
         {/* Desktop Icons */}
-        <div className="header-desktop-icons" style={{ display: 'flex', alignItems: 'center', gap: '2.2rem' }}>
+        <div className="header-desktop-icons" style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '2.2rem',
+          height: '70px',
+          flexShrink: 0
+        }}>
           {/* Search Icon */}
-          <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-            <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="#222"><circle cx="11" cy="11" r="7" strokeWidth="2"/><path d="M21 21l-4.35-4.35" strokeWidth="2" strokeLinecap="round"/></svg>
+          <button style={{ 
+            background: 'none', 
+            border: 'none', 
+            cursor: 'pointer', 
+            padding: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: '44px',
+            width: '44px'
+          }}>
+            <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="#222">
+              <circle cx="11" cy="11" r="7" strokeWidth="2"/>
+              <path d="M21 21l-4.35-4.35" strokeWidth="2" strokeLinecap="round"/>
+            </svg>
           </button>
-          {/* User Icon */}
-          <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-            <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="#222"><circle cx="12" cy="8" r="4" strokeWidth="2"/><path d="M4 20c0-4 4-7 8-7s8 3 8 7" strokeWidth="2"/></svg>
-          </button>
+          
+          {/* User Icon with Dropdown */}
+          <div style={{ 
+            position: 'relative',
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center'
+          }} ref={userDropdownRef}>
+            <button
+              style={{ 
+                background: 'none', 
+                border: 'none', 
+                cursor: 'pointer', 
+                padding: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: '44px',
+                width: '44px'
+              }}
+              aria-haspopup="true"
+              aria-expanded={showUserDropdown}
+              onClick={() => setShowUserDropdown((prev) => !prev)}
+              tabIndex={0}
+            >
+              <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="#222">
+                <circle cx="12" cy="8" r="4" strokeWidth="2"/>
+                <path d="M4 20c0-4 4-7 8-7s8 3 8 7" strokeWidth="2"/>
+              </svg>
+            </button>
+            {showUserDropdown && (
+              <div style={{ 
+                position: 'absolute', 
+                right: 0, 
+                top: '100%', 
+                background: 'white', 
+                boxShadow: '0 2px 8px rgba(0,0,0,0.08)', 
+                borderRadius: 6, 
+                minWidth: 160, 
+                zIndex: 20, 
+                padding: '0.7rem 0',
+                marginTop: '8px'
+              }}>
+                {token && user ? (
+                  <>
+                    <Link 
+                      to="/profile" 
+                      style={{ 
+                        display: 'block', 
+                        padding: '0.6rem 1.2rem', 
+                        color: '#222', 
+                        fontSize: 15, 
+                        textDecoration: 'none', 
+                        whiteSpace: 'nowrap' 
+                      }} 
+                      onClick={() => setShowUserDropdown(false)}
+                    >
+                      Profile
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      style={{ 
+                        display: 'block', 
+                        width: '100%', 
+                        textAlign: 'left', 
+                        padding: '0.6rem 1.2rem', 
+                        color: '#b91c1c', 
+                        fontSize: 15, 
+                        background: 'none', 
+                        border: 'none', 
+                        cursor: 'pointer', 
+                        whiteSpace: 'nowrap' 
+                      }}
+                    >
+                      Logout
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <Link 
+                      to="/login" 
+                      style={{ 
+                        display: 'block', 
+                        padding: '0.6rem 1.2rem', 
+                        color: '#222', 
+                        fontSize: 15, 
+                        textDecoration: 'none', 
+                        whiteSpace: 'nowrap' 
+                      }} 
+                      onClick={() => setShowUserDropdown(false)}
+                    >
+                      Login
+                    </Link>
+                    <Link 
+                      to="/signup" 
+                      style={{ 
+                        display: 'block', 
+                        padding: '0.6rem 1.2rem', 
+                        color: '#222', 
+                        fontSize: 15, 
+                        textDecoration: 'none', 
+                        whiteSpace: 'nowrap' 
+                      }} 
+                      onClick={() => setShowUserDropdown(false)}
+                    >
+                      Sign Up
+                    </Link>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+          
           {/* Bag Icon */}
-          <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-            <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="#222"><path d="M6 7V6a6 6 0 1112 0v1" strokeWidth="2"/><rect x="3" y="7" width="18" height="13" rx="2" strokeWidth="2"/></svg>
+          <button style={{ 
+            background: 'none', 
+            border: 'none', 
+            cursor: 'pointer', 
+            padding: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: '44px',
+            width: '44px'
+          }}>
+            <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="#222">
+              <path d="M6 7V6a6 6 0 1112 0v1" strokeWidth="2"/>
+              <rect x="3" y="7" width="18" height="13" rx="2" strokeWidth="2"/>
+            </svg>
           </button>
         </div>
+        
         {/* Mobile Hamburger Button */}
         <button className="header-mobile-menu-btn" onClick={() => setMobileMenuOpen((prev) => !prev)}>
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#133A5E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#133A5E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12" />
+            <line x1="3" y1="6" x2="21" y2="6" />
+            <line x1="3" y1="18" x2="21" y2="18" />
+          </svg>
         </button>
       </div>
+      
       {/* Mobile Menu Overlay */}
       {mobileMenuOpen && (
         <div className="header-mobile-menu">
@@ -198,4 +491,4 @@ const Header = () => {
   );
 };
 
-export default Header; 
+export default Header;

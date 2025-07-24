@@ -30,6 +30,8 @@ export default function TrainerSignupForm({ onSuccess }) {
     const res = await signupTrainer(data);
     if (res.token) {
       dispatch(authSuccess({ user: res.user, token: res.token }));
+      // Store token in localStorage for API calls
+      localStorage.setItem('token', res.token);
       if (onSuccess) onSuccess(res);
       else navigate('/profile');
     } else {

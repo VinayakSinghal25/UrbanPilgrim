@@ -1,6 +1,5 @@
 // src/api/auth.js
-const BASE_URL = 'http://localhost:3000/api/users';
-
+import { BASE_URL } from '../utils/constants';
 export async function signupUser(data) {
   const res = await fetch(`${BASE_URL}/register`, {
     method: 'POST',
@@ -12,7 +11,7 @@ export async function signupUser(data) {
 
 export async function signupTrainer(formData) {
   // formData is a FormData object (for file upload)
-  const res = await fetch(`${BASE_URL}/register-trainer`, {
+  const res = await fetch(`${BASE_URL}/users/register-trainer`, {
     method: 'POST',
     body: formData,
   });
@@ -20,7 +19,7 @@ export async function signupTrainer(formData) {
 }
 
 export async function loginUser(data) {
-  const res = await fetch(`${BASE_URL}/login`, {
+  const res = await fetch(`${BASE_URL}/users/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),

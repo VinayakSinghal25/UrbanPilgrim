@@ -62,6 +62,8 @@ export default function UserSignupForm({ onSuccess }) {
           user: response.user,
           token: response.token
         }));
+        // Store token in localStorage for API calls
+        localStorage.setItem('token', response.token);
 
         // Call success callback
         onSuccess(response);

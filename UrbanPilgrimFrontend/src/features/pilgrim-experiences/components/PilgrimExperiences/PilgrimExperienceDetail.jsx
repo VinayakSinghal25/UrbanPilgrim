@@ -14,9 +14,11 @@ import {
   MinusIcon,
   PlusIcon,
   XMarkIcon,
-  InformationCircleIcon
+  InformationCircleIcon,
+  CheckIcon
 } from '@heroicons/react/24/outline';
 import { pilgrimExperienceApi } from '../../../../services/pilgrimExperienceApi';
+import { BASE_URL } from '../../../../utils/constants';
 
 const PilgrimExperienceDetail = () => {
   const { id } = useParams();
@@ -36,6 +38,9 @@ const PilgrimExperienceDetail = () => {
     whatsNotIncluded: false
   });
   const [showTermsModal, setShowTermsModal] = useState(false);
+  const [userConsent, setUserConsent] = useState(false);
+  const [bookingError, setBookingError] = useState(null);
+  const [bookingLoading, setBookingLoading] = useState(false);
 
   useEffect(() => {
     fetchExperience();
@@ -135,16 +140,66 @@ const PilgrimExperienceDetail = () => {
     return `${formatDate(from)} - ${formatDate(to)}`;
   };
 
-  const handleBookNow = () => {
-    // TODO: Implement booking functionality
-    console.log('Booking:', {
-      experienceId: id,
-      selectedDate,
-      selectedOccupancy,
-      quantity,
-      price: getCurrentPrice()
-    });
-    alert('Booking functionality will be implemented soon!');
+  // Helper to calculate number of nights between two dates
+  const getNumberOfNights = () => {
+    if (!selectedDate) return 1;
+    const [from, to] = selectedDate.split(' to ');
+    if (!from || !to) return 1;
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+    const diffTime = toDate - fromDate;
+    const nights = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+    return nights;
+  };
+
+  // Calculate total price
+  const nights = getNumberOfNights();
+  const perNightPrice = getCurrentPrice();
+  const totalPrice = perNightPrice ? perNightPrice * nights * quantity : null;
+
+  const handleBookNow = async () => {
+    setBookingError(null);
+    if (!selectedDate) {
+      setBookingError('Please select a package/date.');
+      return;
+    }
+    if (!userConsent) {
+      setBookingError('You must agree to the terms and conditions.');
+      return;
+    }
+    setBookingLoading(true);
+    try {
+      // Parse selectedDates (assume format: 'YYYY-MM-DD to YYYY-MM-DD')
+      const [from, to] = selectedDate.split(' to ');
+      const payload = {
+        experienceId: experience._id,
+        occupancy: selectedOccupancy,
+        sessionCount: quantity,
+        selectedDates: { from, to },
+        userConsent: true
+      };
+      // Assume JWT token is in localStorage (adjust as needed)
+      const token = localStorage.getItem('token');
+      const res = await fetch(`${BASE_URL}/bookings/pilgrim/create`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!data.success) {
+        setBookingError(data.message || 'Booking failed.');
+        setBookingLoading(false);
+        return;
+      }
+      // Redirect to payment URL
+      window.location.href = data.data.paymentUrl;
+    } catch (err) {
+      setBookingError('Booking failed. Please try again.');
+      setBookingLoading(false);
+    }
   };
 
   const handleMeetGuideClick = () => {
@@ -251,713 +306,305 @@ const PilgrimExperienceDetail = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Mobile Only Header */}
-      <div className="lg:hidden bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="px-4 py-4">
-          <div className="flex items-center justify-between mb-3">
-            <button
-              onClick={() => navigate('/pilgrim-experiences')}
-              className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg"
-            >
-              <ArrowLeftIcon className="h-5 w-5" />
-            </button>
-            <div className="text-right">
-              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
-                {formatPrice(getCurrentPrice())}
-              </p>
-              <p className="text-xs text-gray-400">
-                {selectedOccupancy} Occupancy
-              </p>
-            </div>
-          </div>
-          <div className="text-center">
-            <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">URBAN PILGRIM</p>
-            <h1 className="text-lg font-bold text-gray-900 leading-tight">
-              {experience.name}
-            </h1>
-          </div>
-        </div>
-      </div>
-
-      {/* Desktop Layout */}
-      <div className="hidden lg:flex min-h-screen">
-        {/* Left Side - Fixed Image */}
-        <div className="w-1/2 sticky top-0 h-screen relative">
-          {experience.images && experience.images.length > 0 ? (
-            <img
-              src={experience.images[currentImageIndex]?.url}
-              alt={experience.name}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="flex items-center justify-center h-full bg-gradient-to-br from-amber-50 to-orange-50">
-              <div className="text-center">
-                <MapPinIcon className="h-12 w-12 text-amber-400 mx-auto mb-2" />
-                <p className="text-amber-600 font-medium">Spiritual Journey</p>
-              </div>
-            </div>
-          )}
-          
-          {/* Image Navigation */}
-          {experience.images && experience.images.length > 1 && (
-            <>
-              <button
-                onClick={prevImage}
-                className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white backdrop-blur-sm p-2 rounded-full shadow-lg"
-              >
-                <ChevronLeftIcon className="h-5 w-5" />
-              </button>
-              <button
-                onClick={nextImage}
-                className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white backdrop-blur-sm p-2 rounded-full shadow-lg"
-              >
-                <ChevronRightIcon className="h-5 w-5" />
-              </button>
-              
-              {/* Image Counter */}
-              <div className="absolute bottom-4 right-4 bg-black/50 text-white px-2 py-1 rounded text-xs">
-                {currentImageIndex + 1}/{experience.images.length}
-              </div>
-            </>
-          )}
-
-          {/* Back Button */}
-          <button
-            onClick={() => navigate('/pilgrim-experiences')}
-            className="absolute top-4 left-4 bg-white/80 hover:bg-white backdrop-blur-sm p-2 rounded-full shadow-lg"
-          >
-            <ArrowLeftIcon className="h-5 w-5" />
-          </button>
-        </div>
-
-        {/* Right Side - All Content */}
-        <div className="w-1/2 bg-white">
-          <div className="p-8 space-y-8">
-            {/* Header */}
-            <div>
-              <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">URBAN PILGRIM</p>
-              <h1 className="text-2xl font-bold text-gray-900 mb-4">{experience.name}</h1>
-              <div className="flex items-baseline space-x-2">
-                <p className="text-3xl font-bold text-gray-900">
-                  {formatPrice(getCurrentPrice())}
-                </p>
-                <span className="text-sm text-gray-500">
-                  ({selectedOccupancy} Occupancy)
-                </span>
-              </div>
-            </div>
-
-            {/* Package Options */}
-            {experience.availableDates && experience.availableDates.length > 0 && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">Package Options</label>
-                <div className="space-y-2">
-                  {experience.availableDates.map((dateRange, index) => {
-                    const dateValue = `${dateRange.from} to ${dateRange.to}`;
-                    const isSelected = selectedDate === dateValue;
-                    return (
-                      <label 
-                        key={index} 
-                        className={`flex items-center p-3 rounded-lg border cursor-pointer transition-colors ${
-                          isSelected ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-300 hover:bg-gray-50'
-                        }`}
-                      >
-                        <input
-                          type="radio"
-                          name="dateRange"
-                          value={dateValue}
-                          checked={isSelected}
-                          onChange={(e) => setSelectedDate(e.target.value)}
-                          className="sr-only"
-                        />
-                        <span className="text-sm font-medium">
-                          {formatDateRange(dateRange.from, dateRange.to)}
-                        </span>
-                      </label>
-                    );
-                  })}
+    <div className="min-h-screen bg-gradient-to-b from-gray-100 to-white relative">
+      <div className="max-w-6xl mx-auto flex flex-col md:flex-row gap-0 md:gap-8 pt-6 pb-24">
+        {/* Left: Image Carousel */}
+        <div className="w-full md:w-[45%] flex-shrink-0 relative">
+          <div className="sticky top-8">
+            <div className="relative w-full h-[320px] sm:h-[420px] md:h-[600px] rounded-2xl overflow-hidden shadow-lg">
+              {experience.images && experience.images.length > 0 ? (
+                <img
+                  src={experience.images[currentImageIndex]?.url}
+                  alt={experience.name}
+                  className="w-full h-full object-cover object-center"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-amber-50 to-orange-50">
+                  <MapPinIcon className="h-16 w-16 text-amber-400" />
                 </div>
-              </div>
-            )}
-
-            {/* Occupancy */}
-            {experience.occupancyOptions && experience.occupancyOptions.length > 0 && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">Occupancy</label>
-                <div className="flex space-x-2">
-                  {experience.occupancyOptions.map((option) => {
-                    const isSelected = selectedOccupancy === option;
-                    return (
-                      <button
-                        key={option}
-                        onClick={() => setSelectedOccupancy(option)}
-                        className={`flex-1 px-4 py-3 rounded-lg border font-medium transition-colors ${
-                          isSelected ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-300 hover:bg-gray-50'
-                        }`}
-                      >
-                        {option}
-                        {/* Show price for each option */}
-                        <div className="text-xs mt-1">
-                          {option === 'Single' && experience.priceSingle && (
-                            <span>₹{experience.priceSingle.toLocaleString()}</span>
-                          )}
-                          {option === 'Couple' && experience.priceCouple && (
-                            <span>₹{experience.priceCouple.toLocaleString()}</span>
-                          )}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Location Information - Moved here after Occupancy */}
-            {(experience.location || experience.address || experience.mapLink) && (
-              <div className="space-y-3">
-                {experience.location && (
-                  <div className="flex items-start">
-                    <MapPinIcon className="h-5 w-5 text-gray-400 mr-2 mt-0.5 flex-shrink-0" />
-                    <span className="text-sm text-gray-600">{experience.location}</span>
-                  </div>
-                )}
-                
-                {experience.address && (
-                  <p className="text-sm text-gray-600 leading-relaxed pl-7">
-                    {experience.address}
-                  </p>
-                )}
-                
-                {experience.mapLink && (
+              )}
+              {/* Carousel Controls */}
+              {experience.images && experience.images.length > 1 && (
+                <>
                   <button
-                    onClick={handleMapClick}
-                    className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 pl-7"
+                    onClick={prevImage}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white p-2 rounded-full shadow z-10"
+                    aria-label="Previous image"
                   >
-                    <LinkIcon className="h-4 w-4 mr-1" />
-                    View on Map
+                    <ChevronLeftIcon className="h-6 w-6 text-gray-800" />
                   </button>
-                )}
-              </div>
-            )}
-
-            {/* Quantity */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">
-                No of persons/sessions (1 in cart)
-              </label>
-              <div className="flex items-center border border-gray-300 rounded-lg max-w-xs">
-                <button
-                  onClick={() => handleQuantityChange(-1)}
-                  className="p-3 hover:bg-gray-50 border-r border-gray-300"
-                  disabled={quantity <= 1}
-                >
-                  <MinusIcon className="h-4 w-4" />
-                </button>
-                <span className="flex-1 text-center py-3 font-medium">{quantity}</span>
-                <button
-                  onClick={() => handleQuantityChange(1)}
-                  className="p-3 hover:bg-gray-50 border-l border-gray-300"
-                >
-                  <PlusIcon className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-
-            {/* Book Now Button */}
-            <button
-              onClick={handleBookNow}
-              disabled={!selectedDate}
-              className="w-full bg-gray-900 text-white py-3 rounded-lg font-medium hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              Book Now
-            </button>
-
-            {/* About Sections */}
-            {experience.about && experience.about.map((section, index) => (
-              <div key={index} className="space-y-4">
-                <h2 className="text-xl font-bold text-gray-900">{section.heading}</h2>
-                <div className="space-y-4">
-                  {section.paragraphs.map((paragraph, pIndex) => (
-                    <p key={pIndex} className="text-gray-600 leading-relaxed">
-                      {paragraph}
-                    </p>
-                  ))}
-                </div>
-              </div>
-            ))}
-
-            {/* What to Expect */}
-            {experience.whatToExpect && (
-              <div className="space-y-4">
-                <h2 className="text-xl font-bold text-gray-900">What to Expect</h2>
-                <p className="text-gray-600 leading-relaxed">{experience.whatToExpect}</p>
-              </div>
-            )}
-
-            {/* About Your Retreat Guide */}
-            {experience.retreatGuideBio && (
-              <div className="border border-gray-200 rounded-lg">
-                <button 
-                  className="flex items-center justify-between w-full p-4 text-left hover:bg-gray-50"
-                  onClick={() => toggleSectionExpansion('aboutGuide')}
-                >
-                  <h2 className="text-lg font-semibold text-gray-900">About your retreat guide</h2>
-                  {expandedSections.aboutGuide ? (
-                    <ChevronUpIcon className="h-5 w-5 text-gray-400" />
-                  ) : (
-                    <ChevronDownIcon className="h-5 w-5 text-gray-400" />
-                  )}
-                </button>
-                
-                {expandedSections.aboutGuide && (
-                  <div className="border-t border-gray-200 p-4 space-y-4">
-                    <p className="text-gray-600 leading-relaxed">{experience.retreatGuideBio}</p>
-                    {experience.trainerProfileLink && (
-                      <button
-                        onClick={handleMeetGuideClick}
-                        className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 underline"
-                      >
-                        Meet your guide
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* What's Included */}
-            {experience.whatsIncluded && experience.whatsIncluded.length > 0 && (
-              <div className="border border-gray-200 rounded-lg">
-                <button 
-                  className="flex items-center justify-between w-full p-4 text-left hover:bg-gray-50"
-                  onClick={() => toggleSectionExpansion('whatsIncluded')}
-                >
-                  <h2 className="text-lg font-semibold text-gray-900">What's included in the package</h2>
-                  {expandedSections.whatsIncluded ? (
-                    <ChevronUpIcon className="h-5 w-5 text-gray-400" />
-                  ) : (
-                    <ChevronDownIcon className="h-5 w-5 text-gray-400" />
-                  )}
-                </button>
-                
-                {expandedSections.whatsIncluded && (
-                  <div className="border-t border-gray-200 p-4">
-                    <ul className="space-y-2">
-                      {experience.whatsIncluded.map((item, index) => (
-                        <li key={index} className="flex items-start">
-                          <span className="text-green-500 mr-2 mt-1">✓</span>
-                          <span className="text-gray-600">{item}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* What's Not Included */}
-            {experience.whatsNotIncluded && experience.whatsNotIncluded.length > 0 && (
-              <div className="border border-gray-200 rounded-lg">
-                <button 
-                  className="flex items-center justify-between w-full p-4 text-left hover:bg-gray-50"
-                  onClick={() => toggleSectionExpansion('whatsNotIncluded')}
-                >
-                  <h2 className="text-lg font-semibold text-gray-900">What's not included in the package</h2>
-                  {expandedSections.whatsNotIncluded ? (
-                    <ChevronUpIcon className="h-5 w-5 text-gray-400" />
-                  ) : (
-                    <ChevronDownIcon className="h-5 w-5 text-gray-400" />
-                  )}
-                </button>
-                
-                {expandedSections.whatsNotIncluded && (
-                  <div className="border-t border-gray-200 p-4">
-                    <ul className="space-y-2">
-                      {experience.whatsNotIncluded.map((item, index) => (
-                        <li key={index} className="flex items-start">
-                          <span className="text-red-500 mr-2 mt-1">✗</span>
-                          <span className="text-gray-600">{item}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Program Schedule */}
-            {experience.programSchedule && experience.programSchedule.length > 0 && (
-              <div className="space-y-4">
-                <h2 className="text-xl font-bold text-gray-900">Program Schedule</h2>
-                <div className="space-y-3">
-                  {experience.programSchedule.map((day, dayIndex) => (
-                    <div key={dayIndex} className="border border-gray-200 rounded-lg">
-                      <button
-                        onClick={() => toggleDayExpansion(dayIndex)}
-                        className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50"
-                      >
-                        <h3 className="font-semibold text-gray-900">{day.dayTitle}</h3>
-                        {expandedDays[dayIndex] ? (
-                          <ChevronUpIcon className="h-5 w-5 text-gray-400" />
-                        ) : (
-                          <ChevronDownIcon className="h-5 w-5 text-gray-400" />
-                        )}
-                      </button>
-                      
-                      {expandedDays[dayIndex] && (
-                        <div className="border-t border-gray-200 p-4">
-                          <div className="space-y-6">
-                            {day.activities.map((activity, activityIndex) => (
-                              <div key={activityIndex} className="space-y-2">
-                                <div className="flex justify-between items-start">
-                                  <div>
-                                    <h4 className="font-medium text-gray-900">{activity.displayTitle}</h4>
-                                    <p className="text-sm text-gray-500">{activity.time}</p>
-                                  </div>
-                                </div>
-                                {activity.subheading && (
-                                  <p className="text-sm font-medium text-gray-600 italic">
-                                    {activity.subheading}
-                                  </p>
-                                )}
-                                <p className="text-gray-600 text-sm leading-relaxed">
-                                  {activity.description}
-                                </p>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Terms and Conditions */}
-            {experience.termsAndConditions && experience.termsAndConditions.length > 0 && (
-              <div className="pt-4 border-t border-gray-200">
-                <button
-                  onClick={() => setShowTermsModal(true)}
-                  className="inline-flex items-center text-xs text-gray-500 hover:text-gray-700"
-                >
-                  <InformationCircleIcon className="h-4 w-4 mr-1" />
-                  Terms and Conditions
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Mobile Layout */}
-      <div className="lg:hidden px-4 py-6 space-y-6">
-        {/* Image Gallery */}
-        <div className="relative">
-          <div className="aspect-[4/3] bg-gray-200 rounded-lg overflow-hidden">
-            {experience.images && experience.images.length > 0 ? (
-              <img
-                src={experience.images[currentImageIndex]?.url}
-                alt={experience.name}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="flex items-center justify-center h-full bg-gradient-to-br from-amber-50 to-orange-50">
-                <div className="text-center">
-                  <MapPinIcon className="h-12 w-12 text-amber-400 mx-auto mb-2" />
-                  <p className="text-amber-600 font-medium">Spiritual Journey</p>
-                </div>
-              </div>
-            )}
-          </div>
-          
-          {/* Image Navigation */}
-          {experience.images && experience.images.length > 1 && (
-            <>
-              <button
-                onClick={prevImage}
-                className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white backdrop-blur-sm p-2 rounded-full shadow-lg"
-              >
-                <ChevronLeftIcon className="h-5 w-5" />
-              </button>
-              <button
-                onClick={nextImage}
-                className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white backdrop-blur-sm p-2 rounded-full shadow-lg"
-              >
-                <ChevronRightIcon className="h-5 w-5" />
-              </button>
-              
-              {/* Image Counter */}
-              <div className="absolute bottom-4 right-4 bg-black/50 text-white px-2 py-1 rounded text-xs">
-                {currentImageIndex + 1}/{experience.images.length}
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* All Mobile Content - Same as Desktop Right Side */}
-        <div className="space-y-6">
-          {/* Price Display */}
-          <div className="text-center">
-            <div className="flex items-baseline justify-center space-x-2">
-              <p className="text-2xl font-bold text-gray-900">
-                {formatPrice(getCurrentPrice())}
-              </p>
-              <span className="text-sm text-gray-500">
-                ({selectedOccupancy} Occupancy)
-              </span>
-            </div>
-          </div>
-
-          {/* Package Options */}
-          {experience.availableDates && experience.availableDates.length > 0 && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">Package Options</label>
-              <div className="space-y-2">
-                {experience.availableDates.map((dateRange, index) => {
-                  const dateValue = `${dateRange.from} to ${dateRange.to}`;
-                  const isSelected = selectedDate === dateValue;
-                  return (
-                    <label 
-                      key={index} 
-                      className={`flex items-center p-3 rounded-lg border cursor-pointer transition-colors ${
-                        isSelected ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-300 hover:bg-gray-50'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="dateRange"
-                        value={dateValue}
-                        checked={isSelected}
-                        onChange={(e) => setSelectedDate(e.target.value)}
-                        className="sr-only"
+                  <button
+                    onClick={nextImage}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white p-2 rounded-full shadow z-10"
+                    aria-label="Next image"
+                  >
+                    <ChevronRightIcon className="h-6 w-6 text-gray-800" />
+                  </button>
+                  {/* Dots */}
+                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+                    {experience.images.map((_, idx) => (
+                      <span
+                        key={idx}
+                        className={`inline-block w-2 h-2 rounded-full ${idx === currentImageIndex ? 'bg-amber-400' : 'bg-white/60'}`}
                       />
-                      <span className="text-sm font-medium">
-                        {formatDateRange(dateRange.from, dateRange.to)}
-                      </span>
-                    </label>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Occupancy */}
-          {experience.occupancyOptions && experience.occupancyOptions.length > 0 && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">Occupancy</label>
-              <div className="flex space-x-2">
-                {experience.occupancyOptions.map((option) => {
-                  const isSelected = selectedOccupancy === option;
-                  return (
-                    <button
-                      key={option}
-                      onClick={() => setSelectedOccupancy(option)}
-                      className={`flex-1 px-4 py-3 rounded-lg border font-medium transition-colors ${
-                        isSelected ? 'border-gray-900 bg-gray-900 text-white' : 'border-gray-300 hover:bg-gray-50'
-                      }`}
-                    >
-                      {option}
-                      {/* Show price for each option */}
-                      <div className="text-xs mt-1">
-                        {option === 'Single' && experience.priceSingle && (
-                          <span>₹{experience.priceSingle.toLocaleString()}</span>
-                        )}
-                        {option === 'Couple' && experience.priceCouple && (
-                          <span>₹{experience.priceCouple.toLocaleString()}</span>
-                        )}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Location Information - Also moved here in mobile */}
-          {(experience.location || experience.address || experience.mapLink) && (
-            <div className="space-y-3">
-              {experience.location && (
-                <div className="flex items-start">
-                  <MapPinIcon className="h-5 w-5 text-gray-400 mr-2 mt-0.5 flex-shrink-0" />
-                  <span className="text-sm text-gray-600">{experience.location}</span>
-                </div>
+                    ))}
+                  </div>
+                </>
               )}
-              
-              {experience.address && (
-                <p className="text-sm text-gray-600 leading-relaxed pl-7">
-                  {experience.address}
-                </p>
-              )}
-              
-              {experience.mapLink && (
-                <button
-                  onClick={handleMapClick}
-                  className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 pl-7"
-                >
-                  <LinkIcon className="h-4 w-4 mr-1" />
-                  View on Map
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* Quantity */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-3">
-              No of persons/sessions (1 in cart)
-            </label>
-            <div className="flex items-center border border-gray-300 rounded-lg">
+              {/* Back Button Floating */}
               <button
-                onClick={() => handleQuantityChange(-1)}
-                className="p-3 hover:bg-gray-50 border-r border-gray-300"
-                disabled={quantity <= 1}
+                onClick={() => navigate('/pilgrim-retreats')}
+                className="absolute top-4 left-4 bg-white/80 hover:bg-white p-2 rounded-full shadow-lg z-20"
+                aria-label="Back to experiences"
               >
-                <MinusIcon className="h-4 w-4" />
-              </button>
-              <span className="flex-1 text-center py-3 font-medium">{quantity}</span>
-              <button
-                onClick={() => handleQuantityChange(1)}
-                className="p-3 hover:bg-gray-50 border-l border-gray-300"
-              >
-                <PlusIcon className="h-4 w-4" />
+                <ArrowLeftIcon className="h-6 w-6 text-gray-800" />
               </button>
             </div>
           </div>
-
-          {/* Book Now Button */}
-          <button
-            onClick={handleBookNow}
-            disabled={!selectedDate}
-            className="w-full bg-gray-900 text-white py-3 rounded-lg font-medium hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            Book Now
-          </button>
-
-          {/* About Sections */}
-          {experience.about && experience.about.map((section, index) => (
-            <div key={index} className="space-y-4">
-              <h2 className="text-xl font-bold text-gray-900">{section.heading}</h2>
-              <div className="space-y-4">
-                {section.paragraphs.map((paragraph, pIndex) => (
-                  <p key={pIndex} className="text-gray-600 leading-relaxed">
-                    {paragraph}
-                  </p>
-                ))}
+        </div>
+        {/* Right: Content */}
+        <div className="w-full md:w-[55%] flex flex-col gap-8 px-2 sm:px-4 pt-8 md:pt-0">
+          {/* Title, Location, Price */}
+          <div className="bg-white rounded-2xl shadow p-6 flex flex-col gap-2">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1">{experience.name}</h1>
+            <div className="flex items-center gap-2 mb-1">
+              <MapPinIcon className="h-5 w-5 text-amber-500" />
+              <span className="text-gray-700 text-base font-medium">{experience.location}</span>
+            </div>
+            <span className="text-xl font-semibold text-amber-700">{formatPrice(getCurrentPrice())}</span>
+          </div>
+          {/* Booking Card */}
+          <div className="bg-white rounded-2xl shadow-lg p-6 flex flex-col gap-4 border border-amber-100">
+            <div className="flex flex-col sm:flex-row sm:items-end gap-4">
+              {/* Date Selector */}
+              {experience.availableDates && experience.availableDates.length > 0 && (
+                <div className="flex-1 flex flex-col">
+                  <label className="text-xs text-gray-500 mb-1 text-center">Package Dates</label>
+                  <select
+                    className="rounded-lg border-gray-300 px-3 py-2 text-sm focus:ring-amber-500 focus:border-amber-500"
+                    value={selectedDate}
+                    onChange={e => setSelectedDate(e.target.value)}
+                  >
+                    <option value="">Select</option>
+                    {experience.availableDates.map((dateRange, idx) => {
+                      const dateValue = `${dateRange.from} to ${dateRange.to}`;
+                      return (
+                        <option key={idx} value={dateValue}>
+                          {formatDateRange(dateRange.from, dateRange.to)}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+              )}
+              {/* Occupancy Selector */}
+              {experience.occupancyOptions && experience.occupancyOptions.length > 0 && (
+                <div className="flex-1 flex flex-col">
+                  <label className="text-xs text-gray-500 mb-1 text-center">Occupancy</label>
+                  <select
+                    className="rounded-lg border-gray-300 px-3 py-2 text-sm focus:ring-amber-500 focus:border-amber-500"
+                    value={selectedOccupancy}
+                    onChange={e => setSelectedOccupancy(e.target.value)}
+                  >
+                    {experience.occupancyOptions.map(option => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              {/* Quantity */}
+              <div className="flex-1 flex flex-col items-start">
+                <label className="text-xs text-gray-500 mb-1 text-center">Qty</label>
+                <div className="flex items-center border border-gray-300 rounded-lg">
+                  <button
+                    onClick={() => handleQuantityChange(-1)}
+                    className="p-2 hover:bg-gray-50 border-r border-gray-300"
+                    disabled={quantity <= 1}
+                    type="button"
+                    aria-label="Decrease quantity"
+                  >
+                    <MinusIcon className="h-4 w-4" />
+                  </button>
+                  <span className="px-3 font-medium min-w-[2ch] text-center">{quantity}</span>
+                  <button
+                    onClick={() => handleQuantityChange(1)}
+                    className="p-2 hover:bg-gray-50 border-l border-gray-300"
+                    type="button"
+                    aria-label="Increase quantity"
+                  >
+                    <PlusIcon className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
             </div>
-          ))}
-
+            {/* Price Display */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-1 mb-2">
+              <span className="text-sm text-gray-500">Price per night:</span>
+              <span className="text-base font-semibold text-amber-700">{perNightPrice ? `Rs. ${perNightPrice.toLocaleString('en-IN')}` : 'N/A'}</span>
+              <span className="text-sm text-gray-500 mx-2">× {nights} night{nights > 1 ? 's' : ''} × {quantity} room{quantity > 1 ? 's' : ''}</span>
+              <span className="text-base font-bold text-green-700 ml-auto">Total: {totalPrice ? `Rs. ${totalPrice.toLocaleString('en-IN')}` : 'N/A'}</span>
+            </div>
+            {/* Consent and Book Now */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 mt-2">
+              <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer select-none flex-1">
+                <input
+                  type="checkbox"
+                  checked={userConsent}
+                  onChange={e => setUserConsent(e.target.checked)}
+                  className="accent-amber-600"
+                />
+                <span>I agree to the <span className="underline text-amber-700 cursor-pointer" onClick={() => setShowTermsModal(true)}>terms and conditions</span></span>
+              </label>
+              <button
+                onClick={handleBookNow}
+                disabled={!selectedDate || !userConsent || bookingLoading}
+                className="w-full sm:w-auto bg-amber-600 text-white py-3 px-8 rounded-lg font-semibold hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-md text-lg"
+              >
+                {bookingLoading ? 'Processing...' : 'Book Now'}
+              </button>
+            </div>
+            {/* Booking Error */}
+            {bookingError && <div className="text-red-600 text-xs mt-1 w-full text-center">{bookingError}</div>}
+          </div>
           {/* What to Expect */}
           {experience.whatToExpect && (
-            <div className="space-y-4">
-              <h2 className="text-xl font-bold text-gray-900">What to Expect</h2>
-              <p className="text-gray-600 leading-relaxed">{experience.whatToExpect}</p>
-            </div>
+            <section className="bg-white rounded-2xl shadow p-6">
+              <div className="flex items-center gap-2 mb-2">
+                <InformationCircleIcon className="h-6 w-6 text-amber-500" />
+                <h2 className="text-xl font-bold">What to Expect</h2>
+              </div>
+              <p className="text-gray-700 leading-relaxed text-lg">{experience.whatToExpect}</p>
+            </section>
           )}
-
-          {/* About Your Retreat Guide */}
+          {/* About Sections */}
+          {experience.about && experience.about.map((section, index) => (
+            <section key={index} className="bg-white rounded-2xl shadow p-6">
+              <div className="flex items-center gap-2 mb-2">
+                <UsersIcon className="h-6 w-6 text-amber-500" />
+                <h2 className="text-xl font-bold">{section.heading}</h2>
+              </div>
+              <div className="space-y-2">
+                {section.paragraphs.map((paragraph, pIndex) => (
+                  <p key={pIndex} className="text-gray-700 leading-relaxed text-base">{paragraph}</p>
+                ))}
+              </div>
+            </section>
+          ))}
+          {/* About Guide */}
           {experience.retreatGuideBio && (
-            <div className="border border-gray-200 rounded-lg">
-              <button 
-                className="flex items-center justify-between w-full p-4 text-left hover:bg-gray-50"
+            <section className="bg-white rounded-2xl shadow p-6">
+              <div className="flex items-center gap-2 mb-2">
+                <UsersIcon className="h-6 w-6 text-amber-500" />
+                <h2 className="text-xl font-bold">About your retreat guide</h2>
+              </div>
+              <button
+                className="flex items-center gap-2 text-left hover:underline mb-2"
                 onClick={() => toggleSectionExpansion('aboutGuide')}
+                type="button"
               >
-                <h2 className="text-lg font-semibold text-gray-900">About your retreat guide</h2>
+                <span className="font-medium text-gray-800">Read Bio</span>
                 {expandedSections.aboutGuide ? (
                   <ChevronUpIcon className="h-5 w-5 text-gray-400" />
                 ) : (
                   <ChevronDownIcon className="h-5 w-5 text-gray-400" />
                 )}
               </button>
-              
               {expandedSections.aboutGuide && (
-                <div className="border-t border-gray-200 p-4 space-y-4">
-                  <p className="text-gray-600 leading-relaxed">{experience.retreatGuideBio}</p>
+                <div className="border-t border-gray-200 pt-4">
+                  <p className="text-gray-700 leading-relaxed mb-2">{experience.retreatGuideBio}</p>
                   {experience.trainerProfileLink && (
                     <button
                       onClick={handleMeetGuideClick}
-                      className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 underline"
+                      className="inline-flex items-center text-sm text-blue-600 hover:underline gap-1"
+                      type="button"
                     >
                       Meet your guide
                     </button>
                   )}
                 </div>
               )}
-            </div>
+            </section>
           )}
-
           {/* What's Included */}
           {experience.whatsIncluded && experience.whatsIncluded.length > 0 && (
-            <div className="border border-gray-200 rounded-lg">
-              <button 
-                className="flex items-center justify-between w-full p-4 text-left hover:bg-gray-50"
+            <section className="bg-white rounded-2xl shadow p-6">
+              <div className="flex items-center gap-2 mb-2">
+                <CheckIcon className="h-6 w-6 text-green-500" />
+                <h2 className="text-xl font-bold">What's included in the package</h2>
+              </div>
+              <button
+                className="flex items-center gap-2 text-left hover:underline mb-2"
                 onClick={() => toggleSectionExpansion('whatsIncluded')}
+                type="button"
               >
-                <h2 className="text-lg font-semibold text-gray-900">What's included in the package</h2>
+                <span className="font-medium text-gray-800">View List</span>
                 {expandedSections.whatsIncluded ? (
                   <ChevronUpIcon className="h-5 w-5 text-gray-400" />
                 ) : (
                   <ChevronDownIcon className="h-5 w-5 text-gray-400" />
                 )}
               </button>
-              
               {expandedSections.whatsIncluded && (
-                <div className="border-t border-gray-200 p-4">
+                <div className="border-t border-gray-200 pt-4">
                   <ul className="space-y-2">
                     {experience.whatsIncluded.map((item, index) => (
-                      <li key={index} className="flex items-start">
-                        <span className="text-green-500 mr-2 mt-1">✓</span>
-                        <span className="text-gray-600">{item}</span>
+                      <li key={index} className="flex items-center gap-2 text-green-700">
+                        <span className="text-green-500"><CheckIcon className="h-5 w-5" /></span>
+                        <span className="text-gray-700">{item}</span>
                       </li>
                     ))}
                   </ul>
                 </div>
               )}
-            </div>
+            </section>
           )}
-
           {/* What's Not Included */}
           {experience.whatsNotIncluded && experience.whatsNotIncluded.length > 0 && (
-            <div className="border border-gray-200 rounded-lg">
-              <button 
-                className="flex items-center justify-between w-full p-4 text-left hover:bg-gray-50"
+            <section className="bg-white rounded-2xl shadow p-6">
+              <div className="flex items-center gap-2 mb-2">
+                <XMarkIcon className="h-6 w-6 text-red-500" />
+                <h2 className="text-xl font-bold">What's not included in the package</h2>
+              </div>
+              <button
+                className="flex items-center gap-2 text-left hover:underline mb-2"
                 onClick={() => toggleSectionExpansion('whatsNotIncluded')}
+                type="button"
               >
-                <h2 className="text-lg font-semibold text-gray-900">What's not included in the package</h2>
+                <span className="font-medium text-gray-800">View List</span>
                 {expandedSections.whatsNotIncluded ? (
                   <ChevronUpIcon className="h-5 w-5 text-gray-400" />
                 ) : (
                   <ChevronDownIcon className="h-5 w-5 text-gray-400" />
                 )}
               </button>
-              
               {expandedSections.whatsNotIncluded && (
-                <div className="border-t border-gray-200 p-4">
+                <div className="border-t border-gray-200 pt-4">
                   <ul className="space-y-2">
                     {experience.whatsNotIncluded.map((item, index) => (
-                      <li key={index} className="flex items-start">
-                        <span className="text-red-500 mr-2 mt-1">✗</span>
-                        <span className="text-gray-600">{item}</span>
+                      <li key={index} className="flex items-center gap-2 text-red-700">
+                        <span className="text-red-500"><XMarkIcon className="h-5 w-5" /></span>
+                        <span className="text-gray-700">{item}</span>
                       </li>
                     ))}
                   </ul>
                 </div>
               )}
-            </div>
+            </section>
           )}
-
           {/* Program Schedule */}
           {experience.programSchedule && experience.programSchedule.length > 0 && (
-            <div className="space-y-4">
-              <h2 className="text-xl font-bold text-gray-900">Program Schedule</h2>
+            <section className="bg-white rounded-2xl shadow p-6">
+              <div className="flex items-center gap-2 mb-2">
+                <CalendarIcon className="h-6 w-6 text-amber-500" />
+                <h2 className="text-xl font-bold">Program Schedule</h2>
+              </div>
               <div className="space-y-3">
                 {experience.programSchedule.map((day, dayIndex) => (
-                  <div key={dayIndex} className="border border-gray-200 rounded-lg">
+                  <div key={dayIndex} className="border border-gray-200 rounded-lg mb-2">
                     <button
                       onClick={() => toggleDayExpansion(dayIndex)}
-                      className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50"
+                      className="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50 focus:outline-none"
+                      type="button"
                     >
                       <h3 className="font-semibold text-gray-900">{day.dayTitle}</h3>
                       {expandedDays[dayIndex] ? (
@@ -966,7 +613,6 @@ const PilgrimExperienceDetail = () => {
                         <ChevronDownIcon className="h-5 w-5 text-gray-400" />
                       )}
                     </button>
-                    
                     {expandedDays[dayIndex] && (
                       <div className="border-t border-gray-200 p-4">
                         <div className="space-y-6">
@@ -979,13 +625,9 @@ const PilgrimExperienceDetail = () => {
                                 </div>
                               </div>
                               {activity.subheading && (
-                                <p className="text-sm font-medium text-gray-600 italic">
-                                  {activity.subheading}
-                                </p>
+                                <p className="text-sm font-medium text-gray-600 italic">{activity.subheading}</p>
                               )}
-                              <p className="text-gray-600 text-sm leading-relaxed">
-                                {activity.description}
-                              </p>
+                              <p className="text-gray-700 text-sm leading-relaxed">{activity.description}</p>
                             </div>
                           ))}
                         </div>
@@ -994,24 +636,27 @@ const PilgrimExperienceDetail = () => {
                   </div>
                 ))}
               </div>
-            </div>
+            </section>
           )}
-
           {/* Terms and Conditions */}
           {experience.termsAndConditions && experience.termsAndConditions.length > 0 && (
-            <div className="pt-4 border-t border-gray-200">
+            <section className="bg-white rounded-2xl shadow p-6">
+              <div className="flex items-center gap-2 mb-2">
+                <InformationCircleIcon className="h-6 w-6 text-amber-500" />
+                <h2 className="text-xl font-bold">Terms and Conditions</h2>
+              </div>
               <button
                 onClick={() => setShowTermsModal(true)}
-                className="inline-flex items-center text-xs text-gray-500 hover:text-gray-700"
+                className="inline-flex items-center text-xs text-gray-500 hover:text-gray-700 focus:outline-none"
+                type="button"
               >
                 <InformationCircleIcon className="h-4 w-4 mr-1" />
-                Terms and Conditions
+                View Terms
               </button>
-            </div>
+            </section>
           )}
         </div>
       </div>
-
       {/* Terms Modal */}
       {showTermsModal && <TermsModal />}
     </div>
