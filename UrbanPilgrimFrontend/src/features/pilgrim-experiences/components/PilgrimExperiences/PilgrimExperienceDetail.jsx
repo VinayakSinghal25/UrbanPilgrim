@@ -137,9 +137,11 @@ const PilgrimExperienceDetail = () => {
   const formatDateRange = (from, to) => {
     const fromDate = new Date(from);
     const toDate = new Date(to);
+    
     if (fromDate.getMonth() === toDate.getMonth() && fromDate.getFullYear() === toDate.getFullYear()) {
       return `${fromDate.getDate()}-${toDate.getDate()} ${fromDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`;
     }
+    
     return `${formatDate(from)} - ${formatDate(to)}`;
   };
 

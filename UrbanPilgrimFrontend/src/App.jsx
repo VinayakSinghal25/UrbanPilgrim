@@ -33,6 +33,8 @@ import PilgrimBazaarPage from './features/pilgrim-bazaar/pages/PilgrimBazaarPage
 import AboutPage from './features/static/pages/AboutPage';
 import PilgrimGuidesCategoryPage from './features/pilgrim-guides/pages/PilgrimGuidesCategoryPage';
 import PilgrimSessionsPage from './features/pilgrim-sessions/pages/PilgrimSessionsPage';
+import BookingReview from './features/pilgrim-experiences/components/BookingReview';
+import PaymentStatus from './features/pilgrim-experiences/components/PaymentStatus';
 import './App.css';
 
 const App = () => {
@@ -59,6 +61,8 @@ const App = () => {
           <Route path="/email-verification" element={<EmailVerificationPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
+          <Route path="/booking/review" element={<BookingReview />} />
+          <Route path="/payment/status" element={<PaymentStatus />} />
 
           {/* New Routes */}
           <Route path="/pilgrim-retreats" element={<PilgrimRetreatsPage />} />
