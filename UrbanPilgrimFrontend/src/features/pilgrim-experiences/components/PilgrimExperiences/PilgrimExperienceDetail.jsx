@@ -25,6 +25,18 @@ const PilgrimExperienceDetail = () => {
   const navigate = useNavigate();
   const { user, token } = useSelector((state) => state.auth);
   
+  // Add CSS for hiding scrollbar
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      .hide-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+    `;
+    document.head.appendChild(style);
+    return () => document.head.removeChild(style);
+  }, []);
+  
   const [experience, setExperience] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -73,6 +85,8 @@ const PilgrimExperienceDetail = () => {
   };
 
   useEffect(() => {
+    // Scroll to top when component mounts
+    window.scrollTo(0, 0);
     fetchExperience();
   }, [id]);
 
@@ -201,32 +215,39 @@ const PilgrimExperienceDetail = () => {
     setQuantity(prev => Math.max(1, prev + change));
   };
 
-  // Helper to calculate number of nights between two dates
-  const getNumberOfNights = () => {
-    if (!selectedDateRange) return 1;
-    const fromDate = new Date(selectedDateRange.from);
-    const toDate = new Date(selectedDateRange.to);
-    // Add 1 to include the last night if needed (e.g., 24th to 27th = 3 nights)
-    const diffTime = toDate - fromDate;
-    const nights = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
-    return nights;
+  const toggleDayExpansion = (dayIndex) => {
+    setExpandedDays(prev => ({
+      ...prev,
+      [dayIndex]: !prev[dayIndex]
+    }));
+    
+    // Scroll to the expanded content after a short delay
+    setTimeout(() => {
+      const element = document.querySelector(`[data-day="${dayIndex}"]`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 100);
   };
 
-  // Get per night price based on selected occupancy
-  const getPerNightPrice = () => {
-    if (!experience) return 0;
-    if (selectedOccupancy === 'Single' && experience.priceSingle) return experience.priceSingle;
-    if (selectedOccupancy === 'Couple' && experience.priceCouple) return experience.priceCouple;
-    return experience.price || 0;
+  const toggleSectionExpansion = (section) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+    
+    // Scroll to the expanded content after a short delay
+    setTimeout(() => {
+      const element = document.querySelector(`[data-section="${section}"]`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 100);
   };
-
-  const nights = getNumberOfNights();
-  const perNightPrice = getPerNightPrice();
-  const totalPrice = perNightPrice * nights * quantity;
 
   // Terms and Conditions Modal
   const TermsModal = () => (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] flex flex-col">
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h3 className="text-lg font-semibold text-gray-900">Terms and Conditions</h3>
@@ -256,7 +277,7 @@ const PilgrimExperienceDetail = () => {
     </div>
   );
 
-  if (loading) {
+  if (loading || !experience) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -342,10 +363,10 @@ const PilgrimExperienceDetail = () => {
       </div>
 
       {/* Desktop Layout */}
-      <div className="hidden lg:flex min-h-screen">
+      <div className="hidden lg:flex h-screen">
         {/* Left Side - Fixed Image with adjusted size and spacing */}
         <div className="w-1/2 flex flex-col items-center justify-start pt-8 pb-8 bg-white sticky top-0 h-screen relative">
-          <div className="w-[96%] max-w-[640px] aspect-square rounded-xl overflow-hidden shadow-lg bg-gray-100 flex items-center justify-center">
+          <div className="w-[96%] max-w-[640px] aspect-square rounded-xl overflow-hidden shadow-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
             {experience.images && experience.images.length > 0 ? (
               <img
                 src={experience.images[currentImageIndex]?.url}
@@ -363,29 +384,35 @@ const PilgrimExperienceDetail = () => {
           </div>
           {/* Thumbnails under main image */}
           {experience.images && experience.images.length > 1 && (
-            <div className="flex gap-2 mt-4 justify-center w-[90%] max-w-[520px]">
+            <div className="flex gap-2 mt-4 justify-center w-[90%] max-w-[520px] flex-wrap">
               {experience.images.map((img, idx) => (
                 <img
                   key={idx}
                   src={img.url}
                   alt={`thumb-${idx}`}
                   onClick={() => setCurrentImageIndex(idx)}
-                  className={`w-14 h-14 object-cover rounded-lg border cursor-pointer transition-all ${idx === currentImageIndex ? 'border-black ring-2 ring-black' : 'border-gray-200 opacity-70 hover:opacity-100'}`}
+                  className={`w-14 h-14 object-cover rounded-lg border cursor-pointer transition-all flex-shrink-0 ${idx === currentImageIndex ? 'border-black ring-2 ring-black' : 'border-gray-200 opacity-70 hover:opacity-100'}`}
                 />
               ))}
             </div>
           )}
           {/* Back Button */}
           <button
-            onClick={() => navigate('/pilgrim-retreats')}
+            onClick={() => navigate('/pilgrim-experiences')}
             className="absolute top-8 left-8 bg-white/80 hover:bg-white backdrop-blur-sm p-2 rounded-full shadow-lg"
           >
             <ArrowLeftIcon className="h-5 w-5" />
           </button>
         </div>
         {/* Right Side - All Content with spacing */}
-        <div className="w-1/2 bg-white flex flex-col justify-between">
-          <div className="p-8 pt-12 space-y-8">
+        <div 
+          className="w-1/2 bg-white flex flex-col justify-between overflow-y-auto hide-scrollbar"
+          style={{
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none'
+          }}
+        >
+          <div className="p-8 pt-12 space-y-8 flex-1">
             {/* Header */}
             <div>
               <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">URBAN PILGRIM</p>
@@ -505,7 +532,7 @@ const PilgrimExperienceDetail = () => {
               <label className="block text-sm font-medium text-gray-700 mb-3">
                 No of persons/sessions (1 in cart)
               </label>
-              <div className="flex items-center border border-gray-300 rounded-lg max-w-xs">
+              <div className="flex items-center border border-gray-300 rounded-lg">
                 <button
                   onClick={() => handleQuantityChange(-1)}
                   className="p-3 hover:bg-gray-50 border-r border-gray-300"
@@ -531,14 +558,6 @@ const PilgrimExperienceDetail = () => {
                 </p>
               </div>
             )}
-
-            {/* Price Breakdown */}
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-1 mb-2">
-              <span className="text-sm text-gray-500">Price per night:</span>
-              <span className="text-base font-semibold text-amber-700">{perNightPrice ? `Rs. ${perNightPrice.toLocaleString('en-IN')}` : 'N/A'}</span>
-              <span className="text-sm text-gray-500 mx-2">× {nights} night{nights > 1 ? 's' : ''} × {quantity} room{quantity > 1 ? 's' : ''}</span>
-              <span className="text-base font-bold text-green-700 ml-auto">Total: {totalPrice ? `Rs. ${totalPrice.toLocaleString('en-IN')}` : 'N/A'}</span>
-            </div>
 
             {/* Book Now Button */}
             <button
@@ -587,7 +606,7 @@ const PilgrimExperienceDetail = () => {
                 </button>
                 
                 {expandedSections.aboutGuide && (
-                  <div className="border-t border-gray-200 p-4 space-y-4">
+                  <div className="border-t border-gray-200 p-4 space-y-4" data-section="aboutGuide">
                     <p className="text-gray-600 leading-relaxed">{experience.retreatGuideBio}</p>
                     {experience.trainerProfileLink && (
                       <button
@@ -618,7 +637,7 @@ const PilgrimExperienceDetail = () => {
                 </button>
                 
                 {expandedSections.whatsIncluded && (
-                  <div className="border-t border-gray-200 p-4">
+                  <div className="border-t border-gray-200 p-4" data-section="whatsIncluded">
                     <ul className="space-y-2">
                       {experience.whatsIncluded.map((item, index) => (
                         <li key={index} className="flex items-start">
@@ -648,7 +667,7 @@ const PilgrimExperienceDetail = () => {
                 </button>
                 
                 {expandedSections.whatsNotIncluded && (
-                  <div className="border-t border-gray-200 p-4">
+                  <div className="border-t border-gray-200 p-4" data-section="whatsNotIncluded">
                     <ul className="space-y-2">
                       {experience.whatsNotIncluded.map((item, index) => (
                         <li key={index} className="flex items-start">
@@ -681,9 +700,9 @@ const PilgrimExperienceDetail = () => {
                         )}
                       </button>
                       
-                      {expandedDays[dayIndex] && (
-                        <div className="border-t border-gray-200 p-4">
-                          <div className="space-y-6">
+                                          {expandedDays[dayIndex] && (
+                      <div className="border-t border-gray-200 p-4" data-day={dayIndex}>
+                        <div className="space-y-6">
                             {day.activities.map((activity, activityIndex) => (
                               <div key={activityIndex} className="space-y-2">
                                 <div className="flex justify-between items-start">
@@ -918,14 +937,6 @@ const PilgrimExperienceDetail = () => {
             </div>
           )}
 
-          {/* Price Breakdown */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-1 mb-2">
-            <span className="text-sm text-gray-500">Price per night:</span>
-            <span className="text-base font-semibold text-amber-700">{perNightPrice ? `Rs. ${perNightPrice.toLocaleString('en-IN')}` : 'N/A'}</span>
-            <span className="text-sm text-gray-500 mx-2">× {nights} night{nights > 1 ? 's' : ''} × {quantity} room{quantity > 1 ? 's' : ''}</span>
-            <span className="text-base font-bold text-green-700 ml-auto">Total: {totalPrice ? `Rs. ${totalPrice.toLocaleString('en-IN')}` : 'N/A'}</span>
-          </div>
-
           {/* Book Now Button */}
           <button
             onClick={handleBookNow}
@@ -973,7 +984,7 @@ const PilgrimExperienceDetail = () => {
               </button>
               
               {expandedSections.aboutGuide && (
-                <div className="border-t border-gray-200 p-4 space-y-4">
+                <div className="border-t border-gray-200 p-4 space-y-4" data-section="aboutGuide">
                   <p className="text-gray-600 leading-relaxed">{experience.retreatGuideBio}</p>
                   {experience.trainerProfileLink && (
                     <button
@@ -1004,7 +1015,7 @@ const PilgrimExperienceDetail = () => {
               </button>
               
               {expandedSections.whatsIncluded && (
-                <div className="border-t border-gray-200 p-4">
+                <div className="border-t border-gray-200 p-4" data-section="whatsIncluded">
                   <ul className="space-y-2">
                     {experience.whatsIncluded.map((item, index) => (
                       <li key={index} className="flex items-start">
@@ -1034,7 +1045,7 @@ const PilgrimExperienceDetail = () => {
               </button>
               
               {expandedSections.whatsNotIncluded && (
-                <div className="border-t border-gray-200 p-4">
+                <div className="border-t border-gray-200 p-4" data-section="whatsNotIncluded">
                   <ul className="space-y-2">
                     {experience.whatsNotIncluded.map((item, index) => (
                       <li key={index} className="flex items-start">
@@ -1068,7 +1079,7 @@ const PilgrimExperienceDetail = () => {
                     </button>
                     
                     {expandedDays[dayIndex] && (
-                      <div className="border-t border-gray-200 p-4">
+                      <div className="border-t border-gray-200 p-4" data-day={dayIndex}>
                         <div className="space-y-6">
                           {day.activities.map((activity, activityIndex) => (
                             <div key={activityIndex} className="space-y-2">

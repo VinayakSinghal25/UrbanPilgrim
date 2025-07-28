@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { loginUser } from '../../../../api/auth';
 import { setAuth } from '../../../../slices/authSlice';
+import { setTokenInCookie } from '../../../../utils/cookies';
 
 export default function LoginForm({ onSuccess }) {
   const [formData, setFormData] = useState({
@@ -37,13 +38,15 @@ export default function LoginForm({ onSuccess }) {
       });
 
       if (response.user && response.token) {
-        // Store auth data in Redux
+        // Store auth data in Redux (this will also save to cookies)
         dispatch(setAuth({
           user: response.user,
           token: response.token
         }));
-        // Store token in localStorage for API calls
+        
+        // Also store token in localStorage as backup
         localStorage.setItem('token', response.token);
+        setTokenInCookie(response.token);
 
         // Call success callback
         onSuccess(response);

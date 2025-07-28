@@ -6,24 +6,19 @@ import { logout } from '../../slices/authSlice';
 
 const Header = () => {
   const location = useLocation();
-  const [showGuidesDropdown, setShowGuidesDropdown] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
-  const guidesDropdownRef = useRef(null);
   const userDropdownRef = useRef(null);
   const dispatch = useDispatch();
   const { user, token } = useSelector(state => state.auth);
 
   useEffect(() => {
     function handleClickOutside(event) {
-      if (guidesDropdownRef.current && !guidesDropdownRef.current.contains(event.target)) {
-        setShowGuidesDropdown(false);
-      }
       if (userDropdownRef.current && !userDropdownRef.current.contains(event.target)) {
         setShowUserDropdown(false);
       }
     }
-    if (showGuidesDropdown || showUserDropdown) {
+    if (showUserDropdown) {
       document.addEventListener('mousedown', handleClickOutside);
     } else {
       document.removeEventListener('mousedown', handleClickOutside);
@@ -31,7 +26,7 @@ const Header = () => {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showGuidesDropdown, showUserDropdown]);
+  }, [showUserDropdown]);
 
   const isActive = (path) => location.pathname === path;
 
@@ -209,52 +204,20 @@ const Header = () => {
             Pilgrim Sessions
           </Link>
           
-          {/* Pilgrim Guides Dropdown */}
-          <div style={{ 
-            position: 'relative',
-            height: '100%',
-            display: 'flex',
-            alignItems: 'center'
-          }} ref={guidesDropdownRef}>
-            <span
-              className={`nav-link-animated${isActive('/pilgrim-guides') ? ' active' : ''}`}
-              style={{ 
-                color: isActive('/pilgrim-guides') ? '#133A5E' : '#222', 
-                fontWeight: 400, 
-                fontSize: '16px', 
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                height: '100%'
-              }}
-              onClick={() => setShowGuidesDropdown((prev) => !prev)}
-            >
-              Pilgrim Guides 
-              <svg style={{ marginLeft: 4 }} width="14" height="14" viewBox="0 0 20 20" fill="none">
-                <path d="M5 8L10 13L15 8" stroke="#222" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </span>
-            {showGuidesDropdown && (
-              <div style={{ 
-                position: 'absolute', 
-                top: '100%', 
-                left: 0, 
-                background: 'white', 
-                boxShadow: '0 2px 8px rgba(0,0,0,0.08)', 
-                borderRadius: 6, 
-                minWidth: 210, 
-                zIndex: 10, 
-                padding: '0.7rem 0',
-                marginTop: '8px'
-              }}>
-                <div style={{ padding: '0.5rem 1.2rem', color: '#222', fontSize: '16px', cursor: 'pointer', whiteSpace: 'nowrap' }}>Yoga gurus</div>
-                <div style={{ padding: '0.5rem 1.2rem', color: '#222', fontSize: '16px', cursor: 'pointer', whiteSpace: 'nowrap' }}>Meditation guides</div>
-                <div style={{ padding: '0.5rem 1.2rem', color: '#222', fontSize: '16px', cursor: 'pointer', whiteSpace: 'nowrap' }}>Mental wellness counsellors</div>
-                <div style={{ padding: '0.5rem 1.2rem', color: '#222', fontSize: '16px', cursor: 'pointer', whiteSpace: 'nowrap' }}>Nutrition experts</div>
-                <div style={{ padding: '0.5rem 1.2rem', color: '#222', fontSize: '16px', cursor: 'pointer', whiteSpace: 'nowrap' }}>Ritual Pandits</div>
-              </div>
-            )}
-          </div>
+          <Link 
+            to="/wellness-guide-classes" 
+            className={`nav-link-animated${isActive('/wellness-guide-classes') ? ' active' : ''}`} 
+            style={{ 
+              color: isActive('/wellness-guide-classes') ? '#133A5E' : '#222', 
+              fontWeight: 400, 
+              fontSize: '16px',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center'
+            }}
+          >
+            Pilgrim Guides
+          </Link>
           
           <Link 
             to="/pilgrim-bazaar" 
@@ -459,19 +422,7 @@ const Header = () => {
           <Link to="/" className="nav-link-animated" style={{ color: isActive('/') ? '#133A5E' : '#222', fontWeight: 400 }} onClick={() => setMobileMenuOpen(false)}>Home</Link>
           <Link to="/pilgrim-retreats" className="nav-link-animated" style={{ color: isActive('/pilgrim-retreats') ? '#133A5E' : '#222', fontWeight: 400 }} onClick={() => setMobileMenuOpen(false)}>Pilgrim Retreats</Link>
           <Link to="/pilgrim-sessions" className="nav-link-animated" style={{ color: isActive('/pilgrim-sessions') ? '#133A5E' : '#222', fontWeight: 400 }} onClick={() => setMobileMenuOpen(false)}>Pilgrim Sessions</Link>
-          {/* Pilgrim Guides Dropdown in Mobile */}
-          <div style={{ width: '100%', textAlign: 'center', margin: '1.2rem 0' }}>
-            <span className="nav-link-animated" style={{ color: isActive('/pilgrim-guides') ? '#133A5E' : '#222', fontWeight: 400, cursor: 'pointer' }}>
-              Pilgrim Guides
-            </span>
-            <div style={{ marginTop: '0.7rem' }}>
-              <div style={{ padding: '0.5rem 1.2rem', color: '#222', fontSize: '16px', cursor: 'pointer', whiteSpace: 'nowrap' }}>Yoga gurus</div>
-              <div style={{ padding: '0.5rem 1.2rem', color: '#222', fontSize: '16px', cursor: 'pointer', whiteSpace: 'nowrap' }}>Meditation guides</div>
-              <div style={{ padding: '0.5rem 1.2rem', color: '#222', fontSize: '16px', cursor: 'pointer', whiteSpace: 'nowrap' }}>Mental wellness counsellors</div>
-              <div style={{ padding: '0.5rem 1.2rem', color: '#222', fontSize: '16px', cursor: 'pointer', whiteSpace: 'nowrap' }}>Nutrition experts</div>
-              <div style={{ padding: '0.5rem 1.2rem', color: '#222', fontSize: '16px', cursor: 'pointer', whiteSpace: 'nowrap' }}>Ritual Pandits</div>
-            </div>
-          </div>
+          <Link to="/wellness-guide-classes" className="nav-link-animated" style={{ color: isActive('/wellness-guide-classes') ? '#133A5E' : '#222', fontWeight: 400 }} onClick={() => setMobileMenuOpen(false)}>Pilgrim Guides</Link>
           <Link to="/pilgrim-bazaar" className="nav-link-animated" style={{ color: isActive('/pilgrim-bazaar') ? '#133A5E' : '#222', fontWeight: 400 }} onClick={() => setMobileMenuOpen(false)}>Pilgrim Bazaar</Link>
           <Link to="/contact" className="nav-link-animated" style={{ color: isActive('/contact') ? '#133A5E' : '#222', fontWeight: 400 }} onClick={() => setMobileMenuOpen(false)}>Contact</Link>
           <div className="header-mobile-icons">

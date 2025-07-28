@@ -4,6 +4,7 @@ import { MagnifyingGlassIcon, AdjustmentsHorizontalIcon } from '@heroicons/react
 import { GlobeAltIcon, BuildingOfficeIcon, UserGroupIcon } from '@heroicons/react/24/solid';
 import WellnessGuideClassCard from './WellnessGuideClassCard';
 import { getAllApprovedClasses } from '../../../../api/WellnessGuideClassApi';
+import FadeInSection from '../../../home/components/FadeInSection';
 
 const WellnessGuideClasses = () => {
   const navigate = useNavigate();
@@ -76,7 +77,7 @@ const WellnessGuideClasses = () => {
   };
 
   const handleCardClick = (classId) => {
-    navigate(`/wellness-guide-classes/${classId}`);
+    navigate(`/class/${classId}`);
   };
 
   const clearFilters = () => {
@@ -128,232 +129,262 @@ const WellnessGuideClasses = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div>
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border-b border-emerald-100">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
-          <div className="text-center max-w-4xl mx-auto">
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-4 sm:mb-6">
-              Wellness Guide Classes
-            </h1>
-            <p className="text-base sm:text-lg lg:text-xl text-gray-600 mb-6 sm:mb-8 px-4 sm:px-0">
-              Discover expert-led wellness classes designed to enhance your physical, mental, and spiritual well-being. 
-              Connect with certified wellness guides and transform your journey to holistic health.
-            </p>
-            {/* Mobile: Stack vertically, Desktop: Horizontal */}
-            <div className="flex flex-col sm:flex-row items-center justify-center space-y-3 sm:space-y-0 sm:space-x-6 text-sm sm:text-base text-gray-600">
-              <div className="flex items-center">
-                <GlobeAltIcon className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-emerald-500" />
-                <span>Online & Offline</span>
-              </div>
-              <div className="flex items-center">
-                <UserGroupIcon className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-emerald-500" />
-                <span>Expert Guides</span>
-              </div>
-              <div className="flex items-center">
-                <svg className="h-4 w-4 sm:h-5 sm:w-5 mr-2 text-emerald-500" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                </svg>
-                <span>Certified Programs</span>
-              </div>
-            </div>
-          </div>
-        </div>
+      <div style={{
+        width: '100%',
+        height: '600px',
+        overflow: 'hidden',
+        position: 'relative',
+        background: '#f8f8f8',
+        marginBottom: '2rem',
+      }}>
+        <img
+          src="/3.webp"
+          alt="Wellness Guide Classes Hero"
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            display: 'block',
+          }}
+        />
       </div>
 
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        {/* Search and Filters */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 mb-6 sm:mb-8">
-          <div className="space-y-4">
-            {/* Search - Full width on mobile */}
-            <div className="w-full">
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  type="text"
-                  placeholder="Search classes, guides, specialties..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-3 sm:py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 text-sm sm:text-base"
-                />
-              </div>
-            </div>
-
-            {/* Filters - Stack on mobile, row on tablet+ */}
-            <div className="flex flex-col lg:flex-row space-y-3 lg:space-y-0 lg:space-x-4">
-              {/* Specialty Filter */}
-              <div className="flex-1">
-                <select
-                  value={selectedSpecialty}
-                  onChange={(e) => {
-                    setSelectedSpecialty(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="w-full px-3 py-3 sm:py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 text-sm sm:text-base"
-                >
-                  <option value="">All Specialties</option>
-                  {availableFilters.specialties.map(specialty => (
-                    <option key={specialty._id} value={specialty._id}>{specialty.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Mode Filter */}
-              <div className="flex-1">
-                <select
-                  value={selectedMode}
-                  onChange={(e) => {
-                    setSelectedMode(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="w-full px-3 py-3 sm:py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 text-sm sm:text-base"
-                >
-                  <option value="">All Modes</option>
-                  <option value="online">Online</option>
-                  <option value="offline">Offline</option>
-                </select>
-              </div>
-
-              {/* Location Filter */}
-              <div className="flex-1">
-                <select
-                  value={selectedLocation}
-                  onChange={(e) => {
-                    setSelectedLocation(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="w-full px-3 py-3 sm:py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 text-sm sm:text-base"
-                >
-                  <option value="">All Locations</option>
-                  {availableFilters.locations.map((location, index) => (
-                    <option key={index} value={location}>{location}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Sort Filter */}
-              <div className="flex-1">
-                <select
-                  value={sortBy}
-                  onChange={(e) => {
-                    setSortBy(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  className="w-full px-3 py-3 sm:py-2 border border-gray-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 text-sm sm:text-base"
-                >
-                  <option value="newest">Newest First</option>
-                  <option value="oldest">Oldest First</option>
-                  <option value="price-low">Price: Low to High</option>
-                  <option value="price-high">Price: High to Low</option>
-                </select>
-              </div>
-
-              {/* Clear Filters Button */}
-              <div className="flex-shrink-0">
-                <button
-                  onClick={clearFilters}
-                  className="w-full lg:w-auto px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors duration-200 flex items-center justify-center space-x-2"
-                >
-                  <AdjustmentsHorizontalIcon className="h-4 w-4" />
-                  <span>Clear</span>
-                </button>
-              </div>
-            </div>
+      {/* Filter/Sort Bar */}
+      <div style={{ 
+        background: '#fff', 
+        padding: '2rem 1rem 4rem 1rem', 
+        maxWidth: '1400px', 
+        margin: '0 auto' 
+      }}>
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          marginBottom: '2rem', 
+          flexWrap: 'wrap', 
+          gap: '1rem' 
+        }}>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '1.5rem', 
+            fontSize: '1.1rem', 
+            color: '#444' 
+          }}>
+            <span style={{ color: '#888' }}>Filter:</span>
+            <select
+              value={selectedSpecialty}
+              onChange={(e) => {
+                setSelectedSpecialty(e.target.value);
+                setCurrentPage(1);
+              }}
+              style={{ 
+                border: '1px solid #ddd', 
+                padding: '0.5rem', 
+                borderRadius: '4px',
+                background: 'white'
+              }}
+            >
+              <option value="">All Specialties</option>
+              {availableFilters.specialties.map(specialty => (
+                <option key={specialty._id} value={specialty._id}>{specialty.name}</option>
+              ))}
+            </select>
+            <select
+              value={selectedMode}
+              onChange={(e) => {
+                setSelectedMode(e.target.value);
+                setCurrentPage(1);
+              }}
+              style={{ 
+                border: '1px solid #ddd', 
+                padding: '0.5rem', 
+                borderRadius: '4px',
+                background: 'white'
+              }}
+            >
+              <option value="">All Modes</option>
+              <option value="online">Online</option>
+              <option value="offline">Offline</option>
+            </select>
+          </div>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '1.5rem', 
+            fontSize: '1.1rem', 
+            color: '#444' 
+          }}>
+            <span>Sort by:</span>
+            <select
+              value={sortBy}
+              onChange={(e) => {
+                setSortBy(e.target.value);
+                setCurrentPage(1);
+              }}
+              style={{ 
+                border: '1px solid #ddd', 
+                padding: '0.5rem', 
+                borderRadius: '4px',
+                background: 'white'
+              }}
+            >
+              <option value="newest">Newest</option>
+              <option value="oldest">Oldest</option>
+              <option value="price_low">Price: Low to High</option>
+              <option value="price_high">Price: High to Low</option>
+            </select>
+            <span style={{ color: '#888' }}>{filteredClasses.length} classes</span>
           </div>
         </div>
 
-        {/* Results Summary */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 space-y-2 sm:space-y-0">
-          <div className="text-gray-600">
-            <span className="text-sm sm:text-base">
-              Showing {filteredClasses.length} of {totalClasses} wellness guide classes
-            </span>
-          </div>
-        </div>
+        {/* Loading and Error Handling */}
+        {loading && <div style={{ textAlign: 'center', fontSize: '1.2rem' }}>Loading...</div>}
+        {error && <div style={{ textAlign: 'center', color: 'red', fontSize: '1.1rem' }}>{error}</div>}
 
         {/* Classes Grid */}
-        {filteredClasses.length > 0 ? (
-          <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
-              {filteredClasses.map((wellnessClass) => (
-                <WellnessGuideClassCard
-                  key={wellnessClass._id}
-                  wellnessClass={wellnessClass}
-                  onClick={handleCardClick}
-                />
-              ))}
-            </div>
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex justify-center items-center space-x-2 mt-8">
-                <button
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Previous
-                </button>
-                
-                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                  const startPage = Math.max(1, currentPage - 2);
-                  const pageNumber = startPage + i;
-                  if (pageNumber > totalPages) return null;
-                  
-                  return (
-                    <button
-                      key={pageNumber}
-                      onClick={() => handlePageChange(pageNumber)}
-                      className={`px-3 py-2 text-sm font-medium rounded-md ${
-                        currentPage === pageNumber
-                          ? 'bg-emerald-600 text-white'
-                          : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50'
-                      }`}
-                    >
-                      {pageNumber}
-                    </button>
-                  );
-                })}
-                
-                <button
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Next
-                </button>
+        <div className="wellness-classes-grid">
+          {!loading && !error && filteredClasses.map((cls, idx) => (
+            <div
+              key={cls._id || idx}
+              className="wellness-class-card"
+              onClick={() => handleCardClick(cls._id)}
+            >
+              <img
+                src={cls.photos?.[0] || '/fallback.jpg'}
+                alt={cls.title || 'Wellness Class'}
+                className="wellness-class-image"
+              />
+              <div style={{ padding: '1rem 0.5rem 0.5rem 0.5rem' }}>
+                <div className="wellness-class-title">{cls.title}</div>
+                <div className="wellness-class-price">
+                  {cls.modes?.online?.price || cls.modes?.offline?.price 
+                    ? `From Rs. ${Math.min(
+                        cls.modes.online?.price || Infinity,
+                        cls.modes.offline?.price || Infinity
+                      ).toLocaleString('en-IN')}`
+                    : 'Price on request'
+                  }
+                </div>
               </div>
-            )}
-          </>
-        ) : (
-          /* No Results */
-          <div className="text-center py-12">
-            <div className="w-16 h-16 mx-auto mb-4 text-gray-400">
-              <svg fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-              </svg>
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No classes found</h3>
-            <p className="text-gray-600 mb-4">
-              {searchTerm || selectedSpecialty || selectedMode || selectedLocation
-                ? 'Try adjusting your search criteria or filters'
-                : 'No wellness guide classes are available at the moment'}
-            </p>
-            {(searchTerm || selectedSpecialty || selectedMode || selectedLocation) && (
-              <button
-                onClick={clearFilters}
-                className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors duration-200"
-              >
-                Clear Filters
-              </button>
-            )}
+          ))}
+        </div>
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            alignItems: 'center', 
+            gap: '1rem', 
+            marginTop: '3rem' 
+          }}>
+            <button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              style={{
+                padding: '0.5rem 1rem',
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+                background: currentPage === 1 ? '#f5f5f5' : 'white',
+                color: currentPage === 1 ? '#999' : '#333',
+                cursor: currentPage === 1 ? 'not-allowed' : 'pointer'
+              }}
+            >
+              Previous
+            </button>
+            
+            <span style={{ color: '#666' }}>
+              Page {currentPage} of {totalPages}
+            </span>
+            
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              style={{
+                padding: '0.5rem 1rem',
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+                background: currentPage === totalPages ? '#f5f5f5' : 'white',
+                color: currentPage === totalPages ? '#999' : '#333',
+                cursor: currentPage === totalPages ? 'not-allowed' : 'pointer'
+              }}
+            >
+              Next
+            </button>
           </div>
         )}
       </div>
+
+      <style jsx>{`
+        .wellness-classes-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+          gap: 2.5rem;
+        }
+        
+        .wellness-class-card {
+          background: #fafafa;
+          border-radius: 0px;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+          overflow: hidden;
+          transition: transform 0.3s ease;
+          cursor: pointer;
+          border: 1px solid #e0e0e0;
+        }
+        
+        .wellness-class-card:hover {
+          transform: scale(1.015);
+        }
+        
+        .wellness-class-image {
+          width: 100%;
+          height: 220px;
+          object-fit: cover;
+          display: block;
+        }
+        
+        .wellness-class-title {
+          font-size: 0.9rem;
+          font-weight: 200;
+          color: #333;
+          min-height: 48px;
+          margin-bottom: 0.5rem;
+          text-align: center;
+        }
+        
+        .wellness-class-price {
+          font-size: 1.1rem;
+          color: #444;
+          font-weight: normal;
+          text-align: left;
+          margin-left: 0.5rem;
+          margin-top: 0.5rem;
+        }
+        
+        @media (min-width: 1200px) {
+          .wellness-classes-grid {
+            grid-template-columns: repeat(4, 1fr);
+          }
+        }
+        
+        @media (max-width: 1199px) and (min-width: 768px) {
+          .wellness-classes-grid {
+            grid-template-columns: repeat(2, 1fr);
+          }
+        }
+        
+        @media (max-width: 767px) {
+          .wellness-classes-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
     </div>
   );
 };
 
-export default WellnessGuideClasses; 
+export default WellnessGuideClasses;

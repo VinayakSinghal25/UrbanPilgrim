@@ -174,6 +174,22 @@ const WellnessGuideClassBooking = () => {
     return `Get up to ${Math.max(...discount.tiers.map(t => t.discountPercentage))}% off when you book ${minTier.minClasses}+ sessions`;
   };
 
+  const handleBookNow = () => {
+    if (selectedTimeSlots.length === 0) {
+      alert('Please select at least one time slot to continue');
+      return;
+    }
+
+    // Create booking parameters for the review page
+    const bookingParams = new URLSearchParams({
+      classId: id,
+      slotIds: JSON.stringify(selectedTimeSlots.map(slot => slot._id)),
+      attendeeCount: numberOfPeople
+    });
+    const bookingReviewUrl = `/wellness-class-booking/review?${bookingParams.toString()}`;
+    navigate(bookingReviewUrl);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -245,7 +261,10 @@ const WellnessGuideClassBooking = () => {
                   <button className="bg-gray-800 text-white px-3 sm:px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-900 transition-colors">
                     Add to Cart
                   </button>
-                  <button className="bg-emerald-600 text-white px-3 sm:px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors">
+                  <button 
+                    onClick={handleBookNow}
+                    className="bg-emerald-600 text-white px-3 sm:px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors"
+                  >
                     Book Now
                   </button>
                 </div>
@@ -621,7 +640,10 @@ const WellnessGuideClassBooking = () => {
                       <button className="flex-1 sm:flex-none bg-gray-800 text-white px-6 py-3 rounded-lg font-medium hover:bg-gray-900 transition-colors">
                         Add to Cart
                       </button>
-                      <button className="flex-1 sm:flex-none bg-emerald-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-emerald-700 transition-colors">
+                      <button 
+                        onClick={handleBookNow}
+                        className="flex-1 sm:flex-none bg-emerald-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-emerald-700 transition-colors"
+                      >
                         Book Now
                       </button>
                     </div>

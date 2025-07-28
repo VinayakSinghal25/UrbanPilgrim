@@ -21,6 +21,8 @@ import WellnessGuideDashboard from './features/wellness-guides/pages/WellnessGui
 import CreateWellnessGuideClass from './features/wellness-guides/pages/CreateWellnessGuideClass';
 import WellnessGuideClassPage from './features/wellness-guides/components/WellnessGuideClasses/WellnessGuideClassPage';
 import WellnessGuideClassBooking from './features/wellness-guides/components/WellnessGuideClasses/WellnessGuideClassBooking';
+import ClassBookingReview from './features/wellness-guides/components/WellnessGuideClasses/ClassBookingReview';
+import ClassPaymentStatus from './features/wellness-guides/components/WellnessGuideClasses/ClassPaymentStatus';
 import EmailVerificationPage from './features/auth/pages/EmailVerificationPage';
 import LoginPage from './features/auth/pages/LoginPage';
 import SignupPage from './features/auth/pages/SignupPage';
@@ -51,6 +53,8 @@ const App = () => {
           <Route path="/wellness-guide-classes" element={<WellnessGuideClasses />} />
           <Route path="/class/:id" element={<WellnessGuideClassPage />} />
           <Route path="/class-booking/:id" element={<WellnessGuideClassBooking />} />
+          <Route path="/wellness-class-booking/review" element={<ClassBookingReview />} />
+          <Route path="/class-payment/status" element={<ClassPaymentStatus />} />
           <Route path="/who-we-are" element={<WhoWeArePage />} />
           <Route path="/why-choose-us" element={<WhyChooseUsPage />} />
           <Route path="/contact" element={<ContactPage />} />
@@ -104,8 +108,7 @@ const App = () => {
               </ProtectedRoute>
             }
           />
-          {/* Fallback redirect */}
-          <Route path="*" element={<Navigate to="/" />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
       <Footer />
