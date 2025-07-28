@@ -7,6 +7,11 @@ import {
   ClockIcon,
   ArrowPathIcon,
   DocumentTextIcon,
+  ArrowLeftIcon,
+  EnvelopeIcon,
+  UserIcon,
+  PhoneIcon,
+  ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
 import { classBookingApi } from '../../../../api/classBookingApi';
 
@@ -92,84 +97,406 @@ const ClassPaymentStatus = () => {
 
   const formatTime = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
-  const handleMyBookings = () => navigate('/my-bookings');
+  const getStatusIcon = () => {
+    switch (paymentStatus) {
+      case 'success':
+        return (
+          <div className="relative flex items-center justify-center">
+            <div className="absolute inset-0 bg-green-500 rounded-full animate-ping opacity-20"></div>
+            <div className="absolute inset-0 bg-green-400 rounded-full animate-pulse opacity-30"></div>
+            <CheckCircleIcon className="h-20 w-20 text-green-500 relative z-10" />
+          </div>
+        );
+      case 'failed':
+        return (
+          <div className="relative flex items-center justify-center">
+            <div className="absolute inset-0 bg-red-500 rounded-full animate-ping opacity-20"></div>
+            <XCircleIcon className="h-20 w-20 text-red-500 relative z-10" />
+          </div>
+        );
+      default:
+        return (
+          <div className="relative flex items-center justify-center">
+            <div className="absolute inset-0 bg-yellow-500 rounded-full animate-ping opacity-20"></div>
+            <ArrowPathIcon className="h-20 w-20 text-yellow-500 relative z-10 animate-spin" />
+          </div>
+        );
+    }
+  };
 
-  // --- UI STATES (reuse structure) ---
-  const Wrapper = ({ icon, title, children }) => (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
-        <div className="mb-6">{icon}{title}</div>
-        {children}
-      </div>
-    </div>
-  );
+  const getStatusColor = () => {
+    switch (paymentStatus) {
+      case 'success':
+        return 'text-green-600';
+      case 'failed':
+        return 'text-red-600';
+      default:
+        return 'text-yellow-600';
+    }
+  };
+
+  const getStatusBgColor = () => {
+    switch (paymentStatus) {
+      case 'success':
+        return 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-200';
+      case 'failed':
+        return 'bg-gradient-to-br from-red-50 to-pink-50 border-red-200';
+      default:
+        return 'bg-gradient-to-br from-yellow-50 to-orange-50 border-yellow-200';
+    }
+  };
+
+  const getStatusGradient = () => {
+    switch (paymentStatus) {
+      case 'success':
+        return 'from-green-400 to-emerald-500';
+      case 'failed':
+        return 'from-red-400 to-pink-500';
+      default:
+        return 'from-yellow-400 to-orange-500';
+    }
+  };
 
   if (paymentStatus === 'processing') {
     return (
-      <Wrapper
-        icon={<div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4"><ArrowPathIcon className="h-8 w-8 text-blue-600 animate-spin" /></div>}
-        title={<>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Processing Payment</h2>
-          <p className="text-gray-600">Please wait while we confirm your payment...</p>
-        </>}
-      >
-        <div className="bg-amber-50 rounded-lg p-4 mb-6">
-          <div className="flex items-center justify-center mb-2"><ClockIcon className="h-5 w-5 text-amber-600 mr-2" /><span className="text-sm font-medium text-amber-800">Waiting for confirmation</span></div>
-          <div className="text-2xl font-bold text-amber-900">{formatTime(timeLeft)}</div>
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="relative">
+            <div className="animate-spin rounded-full h-16 w-16 border-4 border-amber-200 border-t-amber-600 mx-auto mb-6"></div>
+            <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-amber-400 animate-ping"></div>
+          </div>
+          <p className="text-gray-600 text-lg font-medium animate-pulse">Processing payment...</p>
+          <p className="text-gray-500 text-sm mt-2">Please wait while we process your transaction</p>
+          <div className="mt-4 bg-amber-50 rounded-lg p-4 max-w-sm mx-auto">
+            <div className="flex items-center justify-center mb-2">
+              <ClockIcon className="h-5 w-5 text-amber-600 mr-2" />
+              <span className="text-sm font-medium text-amber-800">Waiting for confirmation</span>
+            </div>
+            <div className="text-2xl font-bold text-amber-900">{formatTime(timeLeft)}</div>
+          </div>
         </div>
-      </Wrapper>
+      </div>
     );
   }
 
-  if (paymentStatus === 'success') {
-    return (
-      <Wrapper
-        icon={<div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4"><CheckCircleIcon className="h-8 w-8 text-green-600" /></div>}
-        title={<>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Payment Successful!</h2>
-          <p className="text-gray-600">Your class booking has been confirmed successfully.</p>
-        </>}
-      >
-        {bookingDetails && (
-          <div className="bg-green-50 rounded-lg p-4 mb-6 text-left">
-            <h3 className="font-semibold text-green-900 mb-2">Booking Details</h3>
-            <div className="space-y-1 text-sm text-green-800">
-              <p><span className="font-medium">Booking ID:</span> {bookingDetails.bookingId}</p>
-              <p><span className="font-medium">Status:</span> {bookingDetails.status}</p>
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50">
+      {/* Mobile Header */}
+      <div className="lg:hidden bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-10">
+        <div className="px-4 py-4">
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => navigate('/')}
+              className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200 hover:scale-105"
+            >
+              <ArrowLeftIcon className="h-5 w-5" />
+            </button>
+            <h1 className="text-lg font-semibold text-gray-900">Payment Status</h1>
+            <div className="w-9" />
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop Layout */}
+      <div className="hidden lg:block">
+        <div className="max-w-4xl mx-auto py-12 px-8">
+          <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl border border-white/20 overflow-hidden">
+            <div className="p-12 space-y-8">
+              {/* Back Button */}
+              <button
+                onClick={() => navigate('/')}
+                className="inline-flex items-center text-gray-600 hover:text-gray-900 mb-6 transition-colors group"
+              >
+                <ArrowLeftIcon className="h-5 w-5 mr-2 group-hover:-translate-x-1 transition-transform duration-200" />
+                Back to Home
+              </button>
+              
+              {/* Status Content */}
+              <div className="text-center">
+                <div className="mb-8 animate-fade-in">
+                  {getStatusIcon()}
+                </div>
+                
+                <h1 className={`text-4xl font-bold mb-4 ${getStatusColor()} animate-fade-in`}>
+                  {paymentStatus === 'success' ? 'Payment Successful!' : 'Payment Failed'}
+                </h1>
+                
+                <p className="text-gray-600 mb-8 text-lg animate-fade-in">
+                  {paymentStatus === 'success' 
+                    ? 'Your wellness class booking has been confirmed successfully.'
+                    : error || 'We couldn\'t process your payment. Please try again.'
+                  }
+                </p>
+
+                {/* Booking Details for Success */}
+                {paymentStatus === 'success' && bookingDetails && (
+                  <div className="bg-green-50 rounded-2xl p-6 mb-8 border border-green-200">
+                    <h3 className="font-bold text-xl mb-4 text-green-900">Booking Details</h3>
+                    <div className="grid md:grid-cols-2 gap-4 text-left">
+                      <div>
+                        <p className="text-sm text-green-700"><span className="font-medium">Booking ID:</span></p>
+                        <p className="text-green-900 font-mono">{bookingDetails.bookingId}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-green-700"><span className="font-medium">Status:</span></p>
+                        <p className="text-green-900 capitalize">{bookingDetails.status}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                <div className={`rounded-2xl p-8 border ${getStatusBgColor()} shadow-lg`}>
+                  <h3 className="font-bold text-xl mb-6 text-gray-800">
+                    {paymentStatus === 'success' ? 'What happens next?' : 'What you can do:'}
+                  </h3>
+                  <div className="grid md:grid-cols-3 gap-6">
+                    {paymentStatus === 'success' ? (
+                      <>
+                        <div className="flex items-start space-x-3">
+                          <div className="bg-green-100 p-2 rounded-full animate-pulse">
+                            <EnvelopeIcon className="h-6 w-6 text-green-600" />
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-gray-800">Email Confirmation</h4>
+                            <p className="text-sm text-gray-600">You will receive a confirmation email shortly</p>
+                          </div>
+                        </div>
+                        <div className="flex items-start space-x-3">
+                          <div className="bg-blue-100 p-2 rounded-full animate-pulse">
+                            <UserIcon className="h-6 w-6 text-blue-600" />
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-gray-800">Profile Access</h4>
+                            <p className="text-sm text-gray-600">Your booking details will be available in your profile</p>
+                          </div>
+                        </div>
+                        <div className="flex items-start space-x-3">
+                          <div className="bg-purple-100 p-2 rounded-full animate-pulse">
+                            <PhoneIcon className="h-6 w-6 text-purple-600" />
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-gray-800">Team Contact</h4>
+                            <p className="text-sm text-gray-600">Our team will contact you with further instructions</p>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex items-start space-x-3">
+                          <div className="bg-red-100 p-2 rounded-full animate-pulse">
+                            <ExclamationTriangleIcon className="h-6 w-6 text-red-600" />
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-gray-800">Try Again</h4>
+                            <p className="text-sm text-gray-600">You can try the payment again</p>
+                          </div>
+                        </div>
+                        <div className="flex items-start space-x-3">
+                          <div className="bg-blue-100 p-2 rounded-full animate-pulse">
+                            <PhoneIcon className="h-6 w-6 text-blue-600" />
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-gray-800">Contact Support</h4>
+                            <p className="text-sm text-gray-600">Contact our support team for assistance</p>
+                          </div>
+                        </div>
+                        <div className="flex items-start space-x-3">
+                          <div className="bg-yellow-100 p-2 rounded-full animate-pulse">
+                            <CheckCircleIcon className="h-6 w-6 text-yellow-600" />
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-gray-800">Check Payment</h4>
+                            <p className="text-sm text-gray-600">Check your payment method and try again</p>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-center space-x-6">
+                <button
+                  onClick={() => navigate('/')}
+                  className={`px-8 py-4 bg-gradient-to-r ${getStatusGradient()} text-white rounded-xl hover:shadow-lg transition-all duration-200 font-semibold text-lg`}
+                >
+                  Go to Home
+                </button>
+                {paymentStatus === 'success' && (
+                  <button
+                    onClick={() => navigate('/profile')}
+                    className="px-8 py-4 border-2 border-amber-600 text-amber-600 rounded-xl hover:bg-amber-50 transition-all duration-200 font-semibold text-lg"
+                  >
+                    View Bookings
+                  </button>
+                )}
+                {paymentStatus === 'failed' && (
+                  <button
+                    onClick={() => navigate('/wellness-guide-classes')}
+                    className="px-8 py-4 border-2 border-gray-600 text-gray-600 rounded-xl hover:bg-gray-50 transition-all duration-200 font-semibold text-lg"
+                  >
+                    Browse Classes
+                  </button>
+                )}
+              </div>
             </div>
           </div>
-        )}
-        <div className="space-y-3">
-          <button onClick={handleMyBookings} className="w-full bg-emerald-600 text-white py-3 rounded-lg font-medium hover:bg-emerald-700 mb-3 flex items-center justify-center"><DocumentTextIcon className="h-5 w-5 mr-2" /> View My Bookings</button>
-          <button onClick={() => navigate('/wellness-guide-classes')} className="w-full bg-white border border-gray-300 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-50">Browse Classes</button>
         </div>
-      </Wrapper>
-    );
-  }
+      </div>
 
-  if (paymentStatus === 'failed') {
-    return (
-      <Wrapper
-        icon={<div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4"><XCircleIcon className="h-8 w-8 text-red-600" /></div>}
-        title={<>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Payment Failed</h2>
-          <p className="text-gray-600">We couldn't process your payment. Please try again.</p>
-        </>}
-      >
-        {error && <div className="bg-red-50 rounded-lg p-4 mb-6"><p className="text-sm text-red-800">{error}</p></div>}
-        <div className="space-y-3">
-          <button onClick={() => navigate(-1)} className="w-full bg-red-600 text-white py-3 rounded-lg hover:bg-red-700 font-medium">Try Again</button>
-          <button onClick={() => navigate('/wellness-guide-classes')} className="w-full bg-white border border-gray-300 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-50">Browse Classes</button>
+      {/* Mobile Layout */}
+      <div className="lg:hidden">
+        <div className="px-6 py-8">
+          <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl border border-white/20 p-8">
+            <div className="text-center">
+              <div className="mb-8 animate-fade-in">
+                {getStatusIcon()}
+              </div>
+              
+              <h1 className={`text-2xl font-bold mb-4 ${getStatusColor()} animate-fade-in`}>
+                {paymentStatus === 'success' ? 'Payment Successful!' : 'Payment Failed'}
+              </h1>
+              
+              <p className="text-gray-600 mb-8 text-lg animate-fade-in">
+                {paymentStatus === 'success' 
+                  ? 'Your wellness class booking has been confirmed successfully.'
+                  : error || 'We couldn\'t process your payment. Please try again.'
+                }
+              </p>
+
+              {/* Booking Details for Success */}
+              {paymentStatus === 'success' && bookingDetails && (
+                <div className="bg-green-50 rounded-2xl p-4 mb-6 border border-green-200">
+                  <h3 className="font-bold text-lg mb-3 text-green-900">Booking Details</h3>
+                  <div className="space-y-2 text-left">
+                    <div>
+                      <p className="text-sm text-green-700"><span className="font-medium">Booking ID:</span></p>
+                      <p className="text-green-900 font-mono text-sm">{bookingDetails.bookingId}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-green-700"><span className="font-medium">Status:</span></p>
+                      <p className="text-green-900 capitalize text-sm">{bookingDetails.status}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              <div className={`rounded-2xl p-6 border ${getStatusBgColor()} mb-8`}>
+                <h3 className="font-bold text-lg mb-4 text-gray-800">
+                  {paymentStatus === 'success' ? 'What happens next?' : 'What you can do:'}
+                </h3>
+                <div className="space-y-4">
+                  {paymentStatus === 'success' ? (
+                    <>
+                      <div className="flex items-start space-x-3">
+                        <div className="bg-green-100 p-2 rounded-full animate-pulse">
+                          <EnvelopeIcon className="h-5 w-5 text-green-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-gray-800">Email Confirmation</h4>
+                          <p className="text-sm text-gray-600">You will receive a confirmation email shortly</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-3">
+                        <div className="bg-blue-100 p-2 rounded-full animate-pulse">
+                          <UserIcon className="h-5 w-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-gray-800">Profile Access</h4>
+                          <p className="text-sm text-gray-600">Your booking details will be available in your profile</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-3">
+                        <div className="bg-purple-100 p-2 rounded-full animate-pulse">
+                          <PhoneIcon className="h-5 w-5 text-purple-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-gray-800">Team Contact</h4>
+                          <p className="text-sm text-gray-600">Our team will contact you with further instructions</p>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-start space-x-3">
+                        <div className="bg-red-100 p-2 rounded-full animate-pulse">
+                          <ExclamationTriangleIcon className="h-5 w-5 text-red-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-gray-800">Try Again</h4>
+                          <p className="text-sm text-gray-600">You can try the payment again</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-3">
+                        <div className="bg-blue-100 p-2 rounded-full animate-pulse">
+                          <PhoneIcon className="h-5 w-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-gray-800">Contact Support</h4>
+                          <p className="text-sm text-gray-600">Contact our support team for assistance</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-3">
+                        <div className="bg-yellow-100 p-2 rounded-full animate-pulse">
+                          <CheckCircleIcon className="h-5 w-5 text-yellow-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-gray-800">Check Payment</h4>
+                          <p className="text-sm text-gray-600">Check your payment method and try again</p>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                <button
+                  onClick={() => navigate('/')}
+                  className={`w-full px-6 py-4 bg-gradient-to-r ${getStatusGradient()} text-white rounded-xl hover:shadow-lg transition-all duration-200 font-semibold text-lg`}
+                >
+                  Go to Home
+                </button>
+                {paymentStatus === 'success' && (
+                  <button
+                    onClick={() => navigate('/profile')}
+                    className="w-full px-6 py-4 border-2 border-amber-600 text-amber-600 rounded-xl hover:bg-amber-50 transition-all duration-200 font-semibold text-lg"
+                  >
+                    View Bookings
+                  </button>
+                )}
+                {paymentStatus === 'failed' && (
+                  <button
+                    onClick={() => navigate('/wellness-guide-classes')}
+                    className="w-full px-6 py-4 border-2 border-gray-600 text-gray-600 rounded-xl hover:bg-gray-50 transition-all duration-200 font-semibold text-lg"
+                  >
+                    Browse Classes
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
-      </Wrapper>
-    );
-  }
+      </div>
 
-  // timeout / others reuse processing UI with retry option
-  return (
-    <Wrapper icon={<ClockIcon className="h-8 w-8 text-orange-600" />} title={<h2 className="text-xl font-bold">Waiting…</h2>}>
-      <button onClick={retryPaymentCheck} className="mt-4 bg-orange-600 text-white px-4 py-2 rounded">Check Again</button>
-    </Wrapper>
+      <style jsx>{`
+        @keyframes fade-in {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        .animate-fade-in {
+          animation: fade-in 0.6s ease-out;
+        }
+      `}</style>
+    </div>
   );
 };
 
