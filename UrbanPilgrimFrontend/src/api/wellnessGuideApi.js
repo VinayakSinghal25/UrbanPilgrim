@@ -1,8 +1,9 @@
 // src/api/wellnessGuideApi.js
 import { getTokenFromCookie } from '../utils/cookies';
+import { BASE_URL } from '../utils/constants';
 
-const BASE_URL = 'http://localhost:3000/api/wellness-guides';
-const SPECIALTY_BASE_URL = 'http://localhost:3000/api/specialties';
+const WELLNESS_GUIDE_BASE_URL = `${BASE_URL}/wellness-guides`;
+const SPECIALTY_BASE_URL = `${BASE_URL}/specialties`;
 
 // Helper function to get auth headers
 const getAuthHeaders = (token) => ({
@@ -33,7 +34,7 @@ export async function checkWellnessGuideEligibility(token) {
       throw new Error('No authentication token found');
     }
 
-    const response = await fetch(`${BASE_URL}/eligibility`, {
+    const response = await fetch(`${WELLNESS_GUIDE_BASE_URL}/eligibility`, {
       method: 'GET',
       headers: getAuthHeaders(authToken),
     });
@@ -80,7 +81,7 @@ export async function createWellnessGuide(token, formData) {
       throw new Error('No authentication token found');
     }
 
-    const response = await fetch(`${BASE_URL}`, {
+    const response = await fetch(`${WELLNESS_GUIDE_BASE_URL}`, {
       method: 'POST',
       headers: getAuthHeadersFormData(authToken),
       body: formData, // FormData object with files
@@ -106,7 +107,7 @@ export async function getWellnessGuideProfile(token) {
       throw new Error('No authentication token found');
     }
 
-    const response = await fetch(`${BASE_URL}/profile`, {
+    const response = await fetch(`${WELLNESS_GUIDE_BASE_URL}/profile`, {
       method: 'GET',
       headers: getAuthHeaders(authToken),
     });
@@ -131,7 +132,7 @@ export async function getWellnessGuideById(token, id) {
       throw new Error('No authentication token found');
     }
 
-    const response = await fetch(`${BASE_URL}/${id}`, {
+    const response = await fetch(`${WELLNESS_GUIDE_BASE_URL}/${id}`, {
       method: 'GET',
       headers: getAuthHeaders(authToken),
     });
@@ -156,7 +157,7 @@ export async function getWellnessGuideByIdAdmin(token, id) {
       throw new Error('No authentication token found');
     }
 
-    const response = await fetch(`${BASE_URL}/admin/${id}`, {
+    const response = await fetch(`${WELLNESS_GUIDE_BASE_URL}/admin/${id}`, {
       method: 'GET',
       headers: getAuthHeaders(authToken),
     });
@@ -183,7 +184,7 @@ export async function getPendingWellnessGuides(token, page = 1, limit = 10) {
 
     console.log('Making request with token:', authToken ? 'Token exists' : 'No token');
     
-    const response = await fetch(`${BASE_URL}/pending?page=${page}&limit=${limit}`, {
+    const response = await fetch(`${WELLNESS_GUIDE_BASE_URL}/pending?page=${page}&limit=${limit}`, {
       method: 'GET',
       headers: getAuthHeaders(authToken),
     });
@@ -208,7 +209,7 @@ export async function updateWellnessGuideApproval(token, guideId, isApproved) {
       throw new Error('No authentication token found');
     }
 
-    const response = await fetch(`${BASE_URL}/${guideId}/approval`, {
+    const response = await fetch(`${WELLNESS_GUIDE_BASE_URL}/${guideId}/approval`, {
       method: 'PUT',
       headers: getAuthHeaders(authToken),
       body: JSON.stringify({ isApproved }),

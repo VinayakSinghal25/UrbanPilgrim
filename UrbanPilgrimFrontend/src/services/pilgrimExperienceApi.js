@@ -1,9 +1,10 @@
 // src/services/pilgrimExperienceApi.js
 import axios from 'axios';
 import { getTokenFromCookie } from '../utils/cookies';
+import { BASE_URL } from '../utils/constants';
 
 // Use import.meta.env instead of process.env for Vite
-const API_BASE_URL = import.meta.env.REACT_APP_API_URL || 'https://urbanpilgrim.onrender.com/api';
+const API_BASE_URL = import.meta.env.REACT_APP_API_URL || BASE_URL;
 
 // Create axios instance with default config
 const api = axios.create({

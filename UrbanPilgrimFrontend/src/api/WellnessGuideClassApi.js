@@ -1,8 +1,9 @@
 // src/api/wellnessGuideClassApi.js
 import axios from 'axios';
 import { getTokenFromCookie } from '../utils/cookies';
+import { BASE_URL } from '../utils/constants';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_URL = import.meta.env.VITE_API_URL || BASE_URL.replace('/api', '');
 
 // Create axios instance with base configuration
 const apiClient = axios.create({

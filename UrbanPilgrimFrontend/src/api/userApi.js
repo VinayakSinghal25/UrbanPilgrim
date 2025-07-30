@@ -1,5 +1,5 @@
 // src/api/userApi.js
-const BASE_URL = 'http://localhost:3000/api/users';
+import { BASE_URL } from '../utils/constants';
 
 // Helper function to get auth headers
 const getAuthHeaders = (token) => ({
@@ -10,7 +10,7 @@ const getAuthHeaders = (token) => ({
 // Get user profile
 export async function getUserProfile(token) {
   try {
-    const response = await fetch(`${BASE_URL}/profile`, {
+    const response = await fetch(`${BASE_URL}/users/profile`, {
       method: 'GET',
       headers: getAuthHeaders(token),
     });
@@ -30,7 +30,7 @@ export async function getUserProfile(token) {
 // Update user profile
 export async function updateUserProfile(token, userData) {
   try {
-    const response = await fetch(`${BASE_URL}/profile`, {
+    const response = await fetch(`${BASE_URL}/users/profile`, {
       method: 'PUT',
       headers: getAuthHeaders(token),
       body: JSON.stringify(userData),
@@ -51,7 +51,7 @@ export async function updateUserProfile(token, userData) {
 // Update user password
 export async function updateUserPassword(token, passwordData) {
   try {
-    const response = await fetch(`${BASE_URL}/profile`, {
+    const response = await fetch(`${BASE_URL}/users/profile`, {
       method: 'PUT',
       headers: getAuthHeaders(token),
       body: JSON.stringify(passwordData),

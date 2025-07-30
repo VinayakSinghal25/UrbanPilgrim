@@ -1,11 +1,12 @@
 import axios from 'axios';
 import { getTokenFromCookie } from '../utils/cookies';
+import { BASE_URL } from '../utils/constants';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://urbanpilgrim.onrender.com/api';
+
 
 // Create axios instance with default config
 const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },

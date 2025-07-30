@@ -1,5 +1,4 @@
-// src/api/emailVerificationApi.js
-const BASE_URL = 'http://localhost:3000/api/auth';
+import { BASE_URL } from '../utils/constants';
 
 // Helper function to get auth headers
 const getAuthHeaders = (token) => ({
