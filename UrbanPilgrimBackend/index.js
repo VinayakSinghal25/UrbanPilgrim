@@ -14,7 +14,7 @@ connectDB();
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:5173','https://urban-pilgrim-sigma.vercel.app','https://urban-pilgrim-three.vercel.app'], // your frontend origin
+  origin: ['https://urbanpilgrimfix.vercel.app'], // only allow the new frontend
   credentials: true
 }));
 app.use(express.json());

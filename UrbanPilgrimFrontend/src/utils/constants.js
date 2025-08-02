@@ -1,5 +1,5 @@
 // src/utils/constants.js
-export const BASE_URL = 'https://urbanpilgrim-3sjq.onrender.com/api';
+export const BASE_URL = 'https://urbanpilgrimfix.onrender.com/api';
 
 export const PRICE_RANGES = [
   { value: 'under-25000', label: 'Under ₹25,000' },
